@@ -44,11 +44,14 @@ def find_resonances(planets, tol):
     g = 0
     systems = {}
     for i in range(1, len(planets)):
-        if planets['pl_hostname'][i] == planets['pl_hostname'][g]:
+        if planets['pl_hostname'][i] == planets['pl_hostname'][g] and i != len(planets)-1:
             continue
-        else:
+        elif planets['pl_hostname'][i] != planets['pl_hostname'][g] or i == len(planets)-1:
             sys_name = planets['pl_hostname'][g]
-            systems[sys_name] = planets[:][g:i]
+            if i == len(planets)-1:
+                systems[sys_name] = planets[:][g:i+1]
+            else:
+                systems[sys_name] = planets[:][g:i]
             g = i
 
     obs_data = {'21': [], '53': [], '32': [], '75': [], '43': []}
@@ -62,8 +65,10 @@ def find_resonances(planets, tol):
                 massj = np.asarray(curr_sys['pl_bmassj'])[j]
                 massk = np.asarray(curr_sys['pl_bmassj'])[k]
                 if str(massj) == 'nan' or str(massk) == 'nan':
+                    #print('hostname: ' + curr_sys['pl_hostname']) # DEBUG
                     pass
                 else:
+                    #print('hostname: ' + curr_sys['pl_hostname']) # DEBUG
                     periodj = np.asarray(curr_sys['pl_orbper'])[j]
                     periodk = np.asarray(curr_sys['pl_orbper'])[k]
                     if periodj > periodk:
@@ -97,7 +102,9 @@ def find_resonances(planets, tol):
                             errs.append(upp_per_err * 100)
                         else:
                             errs.append(low_per_err * 100)
+                    #print('errs: ', errs) # DEBUG
                     if min(errs) < tol:
+                        #print('hostname: ' + curr_sys['pl_hostname']) # DEBUG
                         for l in range(len(res_floats)):
                             """
                             If the system period ratios are inside the tolerance limit,
@@ -231,7 +238,7 @@ def MM_sim_data(path):
     for res in resonances:
         try:
             runs = [run for run in os.listdir('{}/{}'.format(path, res)) if re.match('[0-9]+$', run)]
-            print(runs)
+            print(runs) # DEBUG (?)
             for run in runs:
                 inputs = os.listdir('{}/{}/{}/input/'.format(path, res, run))
                 for bigin in inputs:
@@ -286,6 +293,7 @@ def plot_boundary(resonance, fig, ax):
     ax.plot(boundary[5], boundary[4], 'b--', linewidth=1)
     return boundary
 
+
 def plot_observed(observed, resonance, fig, ax, boundary, color, label):
     mumin, = boundary[2]
     mumax, = boundary[3]
@@ -300,10 +308,10 @@ def plot_observed(observed, resonance, fig, ax, boundary, color, label):
         mu_o, errs_o = mu_error(po_mass, sig_po_mass, s_mass, sig_s_mass)
         ax.errorbar(mu_i, mu_o, xerr=[[errs_i[0]], [errs_i[1]]], yerr=[[errs_o[0]], [errs_o[1]]], ecolor=color, elinewidth=.5, capsize=2, fmt='.', color=color, label=label)
         first_cond = - (mumax - mumin)/mumin*mu_i + mumax
-        print(mu_i, mu_o)
-        print(system['name'])
+        #print(mu_i, mu_o) # DEBUG
+        #print(system['name']) # DEBUG
         second_cond = - mumin/(mumax - mumin)*mu_i + mumax*mumin/(mumax - mumin)
-        print(second_cond)
+        #print(second_cond) # DEBUG
         try:
             ##if mu_o > first_cond and mu_o > second_cond:
             ax.annotate(system['name'], (mu_i, mu_o)) # DEBUG (indent again after finished)
