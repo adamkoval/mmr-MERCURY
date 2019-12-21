@@ -1,0 +1,2 @@
+# Please adjust the following entries according to your specific setup
+pyenv = /home/akoval/envs/anaconda3/bin/python

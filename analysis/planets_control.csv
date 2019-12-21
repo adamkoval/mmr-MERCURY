@@ -1,0 +1,30 @@
+# This file was produced by the NASA Exoplanet Archive  http://exoplanetarchive.ipac.caltech.edu,,,,,,,,,,,,,,,,
+# Fri Apr  6 10:16:57 2018,,,,,,,,,,,,,,,,
+#,,,,,,,,,,,,,,,,
+# CONSTRAINT:  where (pl_pnum >= 2,,,,,,,,,,,,,,,,
+# CONSTRAINT:  ),,,,,,,,,,,,,,,,
+#,,,,,,,,,,,,,,,,
+# COLUMN pl_hostname:    Host Name,,,,,,,,,,,,,,,,
+# COLUMN pl_letter:      Planet Letter,,,,,,,,,,,,,,,,
+# COLUMN pl_pnum:        Number of Planets in System,,,,,,,,,,,,,,,,
+# COLUMN pl_orbper:      Orbital Period [days],,,,,,,,,,,,,,,,
+# COLUMN pl_orbpererr1:  Orbital Period Upper Unc. [days],,,,,,,,,,,,,,,,
+# COLUMN pl_orbpererr2:  Orbital Period Lower Unc. [days],,,,,,,,,,,,,,,,
+# COLUMN pl_orbperlim:   Orbital Period Limit Flag,,,,,,,,,,,,,,,,
+# COLUMN pl_bmassj:      Planet Mass or M*sin(i)[Jupiter mass],,,,,,,,,,,,,,,,
+# COLUMN pl_bmassjerr1:  Planet Mass or M*sin(i)Upper Unc. [Jupiter mass],,,,,,,,,,,,,,,,
+# COLUMN pl_bmassjerr2:  Planet Mass or M*sin(i)Lower Unc. [Jupiter mass],,,,,,,,,,,,,,,,
+# COLUMN pl_bmassjlim:   Planet Mass or M*sin(i)Limit Flag,,,,,,,,,,,,,,,,
+# COLUMN pl_bmassprov:   Planet Mass or M*sin(i) Provenance,,,,,,,,,,,,,,,,
+# COLUMN st_mass:        Stellar Mass [Solar mass],,,,,,,,,,,,,,,,
+# COLUMN st_masserr1:    Stellar Mass Upper Unc. [Solar mass],,,,,,,,,,,,,,,,
+# COLUMN st_masserr2:    Stellar Mass Lower Unc. [Solar mass],,,,,,,,,,,,,,,,
+# COLUMN st_masslim:     Stellar Mass Limit Flag,,,,,,,,,,,,,,,,
+#,,,,,,,,,,,,,,,,
+loc_rowid,pl_hostname,pl_letter,pl_pnum,pl_orbper,pl_orbpererr1,pl_orbpererr2,pl_orbperlim,pl_bmassj,pl_bmassjerr1,pl_bmassjerr2,pl_bmassjlim,pl_bmassprov,st_mass,st_masserr1,st_masserr2,st_masslim
+46,BD+20 2457,b,2,379.63,2.01,-2.01,0,21.42,,,0,Msini,2.8,1.5,-1.5,0
+47,BD+20 2457,c,2,621.99,10.2,-10.2,0,12.47,,,0,Msini,2.8,1.5,-1.5,0
+480,HD 200964,b,2,613.8,1.3,-1.4,0,1.85,0.14,-0.08,0,Msini,1.44,0.09,-0.09,0
+481,HD 200964,c,2,825,5.1,-3.1,0,0.895,0.123,-0.063,0,Msini,1.44,0.09,-0.09,0
+640,HD 5319,b,2,641,2,-2,0,1.76,0.07,-0.07,0,Msini,1.51,0.11,-0.11,0
+641,HD 5319,c,2,886,8,-8,0,1.15,0.08,-0.08,0,Msini,1.51,0.11,-0.11,0
