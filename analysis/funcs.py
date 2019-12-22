@@ -59,16 +59,13 @@ def find_resonances(planets, tol):
 
     for i in range(len(systems)):
         curr_sys = systems[sys_names[i]]
-        #print(curr_sys) # DEBUG (remove)
         for j in range(len(curr_sys)-1):
             for k in range(j+1, len(curr_sys)):
                 massj = np.asarray(curr_sys['pl_bmassj'])[j]
                 massk = np.asarray(curr_sys['pl_bmassj'])[k]
                 if str(massj) == 'nan' or str(massk) == 'nan':
-                    #print('hostname: ' + curr_sys['pl_hostname']) # DEBUG
                     pass
                 else:
-                    #print('hostname: ' + curr_sys['pl_hostname']) # DEBUG
                     periodj = np.asarray(curr_sys['pl_orbper'])[j]
                     periodk = np.asarray(curr_sys['pl_orbper'])[k]
                     if periodj > periodk:
@@ -84,74 +81,73 @@ def find_resonances(planets, tol):
                     p_o = np.asarray(curr_sys['pl_orbper'])[outer]
                     p_o_maxerr = np.asarray(curr_sys['pl_orbpererr1'])[outer]
 
-                    errs = []
-                    for resonance in res_floats:
+                    errs = {'21': [],'53': [], '32': [], '75': [], '43': []}
+                    for l, res_float in enumerate(res_floats):
                         """
                         Checking the period ratios against the tolerance
                         limit for each resonance.
                         """
+                        res_str = res_strs[l]
+
                         max_periods = [p_o+p_o_maxerr, p_i+p_i_maxerr]
                         min_periods = [p_o+p_o_minerr, p_i+p_i_minerr]
                         max_ratio = max_periods[0] / min_periods[1]
                         min_ratio = min_periods[0] / max_periods[1]
-                        max_per_diff = max_ratio / resonance
-                        min_per_diff = min_ratio / resonance
+                        max_per_diff = max_ratio / res_float
+                        min_per_diff = min_ratio / res_float
                         upp_per_err = abs(1 - max_per_diff)
                         low_per_err = abs(1 - min_per_diff)
                         if upp_per_err > low_per_err:
-                            errs.append(upp_per_err * 100)
+                            errs[res_strs[l]] = upp_per_err * 100
                         else:
-                            errs.append(low_per_err * 100)
-                    #print('errs: ', errs) # DEBUG
-                    if min(errs) < tol:
-                        #print('hostname: ' + curr_sys['pl_hostname']) # DEBUG
-                        for l in range(len(res_floats)):
-                            """
-                            If the system period ratios are inside the tolerance limit,
-                            append their details to the main dictionary.
-                            """
-                            curr_sys_info = {'name': [],
-                                             'pi_mass': [],
-                                             'sig_pi_mass': [],
-                                             'po_mass': [],
-                                             'sig_po_mass': [],
-                                             's_mass': [],
-                                             'sig_s_mass': [],
-                                             'm_type': [],
-                                             'pi_per': [],
-                                             'sig_pi_per': [],
-                                             'po_per': [],
-                                             'sig_po_per': []}
-                            curr_sys_info['name'] = '{} {}, {}'.format(
-                                    np.asarray(curr_sys['pl_hostname'])[inner],
-                                    np.asarray(curr_sys['pl_letter'])[inner],
-                                    np.asarray(curr_sys['pl_letter'])[outer])
-                            curr_sys_info['pi_mass'] = np.asarray(curr_sys['pl_bmassj'])[inner]
-                            curr_sys_info['sig_pi_mass'] = (
-                                    np.asarray(curr_sys['pl_bmassjerr2'])[inner],
-                                    np.asarray(curr_sys['pl_bmassjerr1'])[inner])
-                            curr_sys_info['po_mass'] = np.asarray(curr_sys['pl_bmassj'])[outer]
-                            curr_sys_info['sig_po_mass'] = (
-                                    np.asarray(curr_sys['pl_bmassjerr2'])[outer],
-                                    np.asarray(curr_sys['pl_bmassjerr1'])[outer])
-                            curr_sys_info['s_mass'] = np.asarray(curr_sys['st_mass'])[inner]
-                            curr_sys_info['sig_s_mass'] = (
-                                    np.asarray(curr_sys['st_masserr2'])[inner],
-                                    np.asarray(curr_sys['st_masserr1'])[inner])
-                            curr_sys_info['m_type'] = np.asarray(curr_sys['pl_bmassprov'])[inner]
-                            curr_sys_info['pi_per'] = np.asarray(curr_sys['pl_orbper'])[inner]
-                            curr_sys_info['sig_pi_per'] = (
-                                    np.asarray(curr_sys['pl_orbpererr2'])[inner],
-                                    np.asarray(curr_sys['pl_orbpererr1'])[inner])
-                            curr_sys_info['po_per'] = np.asarray(curr_sys['pl_orbper'])[outer]
-                            curr_sys_info['sig_po_per'] = (
-                                    np.asarray(curr_sys['pl_orbpererr2'])[outer],
-                                    np.asarray(curr_sys['pl_orbpererr1'])[outer])
-
-                            obs_data[res_strs[l]].append(curr_sys_info)
-                        else:
-                            pass
-    return obs_data, massj, massk
+                            errs[res_strs[l]] = low_per_err * 100
+                    if min(errs.values()) < tol:
+                        """
+                        If the system period ratios are inside the tolerance limit,
+                        append their details to the main dictionary.
+                        """
+                        curr_sys_info = {'name': [],
+                                         'pi_mass': [],
+                                         'sig_pi_mass': [],
+                                         'po_mass': [],
+                                         'sig_po_mass': [],
+                                         's_mass': [],
+                                         'sig_s_mass': [],
+                                         'm_type': [],
+                                         'pi_per': [],
+                                         'sig_pi_per': [],
+                                         'po_per': [],
+                                         'sig_po_per': []}
+                        curr_sys_info['name'] = '{} {}, {}'.format(
+                                np.asarray(curr_sys['pl_hostname'])[inner],
+                                np.asarray(curr_sys['pl_letter'])[inner],
+                                np.asarray(curr_sys['pl_letter'])[outer])
+                        curr_sys_info['pi_mass'] = np.asarray(curr_sys['pl_bmassj'])[inner]
+                        curr_sys_info['sig_pi_mass'] = (
+                                np.asarray(curr_sys['pl_bmassjerr2'])[inner],
+                                np.asarray(curr_sys['pl_bmassjerr1'])[inner])
+                        curr_sys_info['po_mass'] = np.asarray(curr_sys['pl_bmassj'])[outer]
+                        curr_sys_info['sig_po_mass'] = (
+                                np.asarray(curr_sys['pl_bmassjerr2'])[outer],
+                                np.asarray(curr_sys['pl_bmassjerr1'])[outer])
+                        curr_sys_info['s_mass'] = np.asarray(curr_sys['st_mass'])[inner]
+                        curr_sys_info['sig_s_mass'] = (
+                                np.asarray(curr_sys['st_masserr2'])[inner],
+                                np.asarray(curr_sys['st_masserr1'])[inner])
+                        curr_sys_info['m_type'] = np.asarray(curr_sys['pl_bmassprov'])[inner]
+                        curr_sys_info['pi_per'] = np.asarray(curr_sys['pl_orbper'])[inner]
+                        curr_sys_info['sig_pi_per'] = (
+                                np.asarray(curr_sys['pl_orbpererr2'])[inner],
+                                np.asarray(curr_sys['pl_orbpererr1'])[inner])
+                        curr_sys_info['po_per'] = np.asarray(curr_sys['pl_orbper'])[outer]
+                        curr_sys_info['sig_po_per'] = (
+                                np.asarray(curr_sys['pl_orbpererr2'])[outer],
+                                np.asarray(curr_sys['pl_orbpererr1'])[outer])
+                        best_resonance = min(errs, key=errs.get)
+                        obs_data[best_resonance].append(curr_sys_info)
+                    else:
+                        pass
+    return obs_data
 
 
 # # # # # # # # # # # # # # #
@@ -238,7 +234,6 @@ def MM_sim_data(path):
     for res in resonances:
         try:
             runs = [run for run in os.listdir('{}/{}'.format(path, res)) if re.match('[0-9]+$', run)]
-            print(runs) # DEBUG (?)
             for run in runs:
                 inputs = os.listdir('{}/{}/{}/input/'.format(path, res, run))
                 for bigin in inputs:
@@ -275,8 +270,7 @@ def stability_boundary(resonance):
 # MAKE FIGURE
 # # # # # # # # # # # # # # #
 def stability_fig_setup(resonance):
-    ##m_lims = {'21': (0, 14.15e-3), '53': (0, 4.15e-3), '32': (0, 4.5e-3), '75': (0, 2.87e-3), '43': (0, 1.42e-3)}
-    m_lims = {'21': (0, 14.15e-3), '53': (0, 8e-3), '32': (0, 4.5e-3), '75': (0, 8e-3), '43': (0, 8e-3)} # DEBUG
+    m_lims = {'21': (0, 14.15e-3), '53': (0, 4.15e-3), '32': (0, 4.5e-3), '75': (0, 2.87e-3), '43': (0, 1.42e-3)}
     fig, ax = plt.subplots()
     ax.set_xlim(m_lims[resonance])
     ax.set_ylim(m_lims[resonance])
@@ -286,6 +280,7 @@ def stability_fig_setup(resonance):
     ax.set_title('{}:{}'.format(*resonance))
     boundary = plot_boundary(resonance, fig, ax)
     return fig, ax, boundary
+
 
 def plot_boundary(resonance, fig, ax):
     boundary = stability_boundary(resonance)
@@ -308,12 +303,9 @@ def plot_observed(observed, resonance, fig, ax, boundary, color, label):
         mu_o, errs_o = mu_error(po_mass, sig_po_mass, s_mass, sig_s_mass)
         ax.errorbar(mu_i, mu_o, xerr=[[errs_i[0]], [errs_i[1]]], yerr=[[errs_o[0]], [errs_o[1]]], ecolor=color, elinewidth=.5, capsize=2, fmt='.', color=color, label=label)
         first_cond = - (mumax - mumin)/mumin*mu_i + mumax
-        #print(mu_i, mu_o) # DEBUG
-        #print(system['name']) # DEBUG
         second_cond = - mumin/(mumax - mumin)*mu_i + mumax*mumin/(mumax - mumin)
-        #print(second_cond) # DEBUG
         try:
-            ##if mu_o > first_cond and mu_o > second_cond:
-            ax.annotate(system['name'], (mu_i, mu_o)) # DEBUG (indent again after finished)
+            if mu_o > first_cond and mu_o > second_cond:
+                ax.annotate(system['name'], (mu_i, mu_o))
         except:
             pass
