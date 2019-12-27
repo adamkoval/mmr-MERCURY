@@ -370,13 +370,13 @@ def stability_boundary(res_str):
         mumin = sym.solve(2*3**(1/6) * (2*x)**(1/3) + 2*3**(1/3) * (2*x)**(2/3) - 18*x / (3**(11/6) * (2*x)**(1/3)) - leeDelta, x)
         X = [0, float(mumin[0]), float(mumax[0])]
         Y = [float(mumax[0]), float(mumin[0]), 0]
-        return X, Y, mumin, mumax, leeDelta
+        return X, Y, leeDelta
 
     res_float = int(res_str[0]) / int(res_str[-1])
-    X, Y, mumin, mumax, leeDelta = stab(res_float)
+    X, Y, leeDelta = stab(res_float)
     y = np.linspace(0, Y[1], 100)
     x = [float(optimize.brentq(fun, 0, X[2]+.01, args=(y[i], leeDelta))) for i in range(0, len(y))]
-    return X, Y, mumin, mumax, x[1:], y[1:]
+    return X, Y, x[1:], y[1:]
 
 
 # # # # # # # # # # # # # # #
