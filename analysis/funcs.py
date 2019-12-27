@@ -16,11 +16,56 @@ Mjup = 1.89813e27 #kg
 G = 6.6741e-11 #m3kg-1s-2
 AU = 1.496e11 #m
 
+
+# # # # # # # # # # # # # # #
+# GENERAL
+# # # # # # # # # # # # # # #
+def mu_error(pmass, pmasserrs, smass, smasserrs):
+    """
+    Function to return planet/star mass ratio from
+    given planet and star masses and its error.
+    In:
+        > pmass - (float) planet mass in Mjup
+        > pmasserrs - (1x2 tuple) errors in planet mass
+        of form (min, max)
+        > smass - (float) star mass in Msol
+        > smasserrs - (1x2 tuple) errors in star mass
+    Out:
+        > mu - (float) pmass/smass mass ratio
+        > (sig_minus, sig_plus) - (1x2 tuple) errors in mass
+        ratio.
+    """
+    global Msol, Mjup
+    mu = float(pmass) / float(smass) * Mjup / Msol
+    sig_pmass_plus = abs((float(pmass)+float(pmasserrs[1])) / float(smass) * Mjup / Msol - mu)
+    sig_pmass_minus = abs((float(pmass)+float(pmasserrs[0])) / float(smass) * Mjup / Msol - mu)
+    sig_smass_plus = abs(float(pmass) / (float(smass)+float(smasserrs[1])) * Mjup / Msol - mu)
+    sig_smass_minus = abs(float(pmass) / (float(smass)+float(smasserrs[0])) * Mjup / Msol - mu)
+    sig_plus = np.sqrt(sig_pmass_plus**2 + sig_smass_plus**2)
+    sig_minus = np.sqrt(sig_pmass_minus**2 + sig_smass_minus**2)
+    return mu, (sig_minus, sig_plus)
+
+
+def listdir_nohidden(path):
+    """
+    Function to list everything in a directory which isn't hidden,
+    e.g., .swp files.
+    In:
+        > path - (str) path to directory to list
+    Out:
+        > dirlist - (1xN list) listed contents of directory.
+    """
+    dirlist = [thing for thing in os.listdir(path) if not thing.startswith('.')]
+    return dirlist
+
+
 # # # # # # # # # # # # # # #
 # RESONANCE FINDING FUNCTIONS
 # # # # # # # # # # # # # # #
 def find_resonances(planets, tol):
     """
+    Function for finding resonances from database provided by
+    "https://exoplanetarchive.ipac.caltech.edu/".
     In:
         > planets - pandas dataframe
         > tolerance - (float) or (int) type between 0-100
@@ -151,148 +196,230 @@ def find_resonances(planets, tol):
 
 
 # # # # # # # # # # # # # # #
-# GENERAL
-# # # # # # # # # # # # # # #
-def mu_error(pmass, pmasserrs, smass, smasserrs):
-    global Msol, Mjup
-    mu = float(pmass) / float(smass) * Mjup / Msol
-    sig_pmass_plus = abs((float(pmass)+float(pmasserrs[1])) / float(smass) * Mjup / Msol - mu)
-    sig_pmass_minus = abs((float(pmass)+float(pmasserrs[0])) / float(smass) * Mjup / Msol - mu)
-    sig_smass_plus = abs(float(pmass) / (float(smass)+float(smasserrs[1])) * Mjup / Msol - mu)
-    sig_smass_minus = abs(float(pmass) / (float(smass)+float(smasserrs[0])) * Mjup / Msol - mu)
-    sig_plus = np.sqrt(sig_pmass_plus**2 + sig_smass_plus**2)
-    sig_minus = np.sqrt(sig_pmass_minus**2 + sig_smass_minus**2)
-    return mu, (sig_minus, sig_plus)
-
-
-def mass_ratio(pmass, smass):
-    global Msol, Mjup
-    mu = float(pmass) / float(smass) * Mjup / Msol
-    return mu
-
-
-# # # # # # # # # # # # # # #
-# READ IN DATA
+# SIM RESULTS
 # # # # # # # # # # # # # # #
 def get_status(info_file):
     """
-    Possible statuses:
+    Get outcome of simulation by reading info.out file.
+    Possible outcomes (quoted exactly as displayed in
+    info.out file):
         >
            Integration complete.
         > planet1  was hit by planet2  at        3919.194 years
         > planet2  collided with the central body at     253003.2085643 years
         > planet2  ejected at     187908.8200906 years
+    In:
+        > info_file - (str) path to info.out file
+    Out:
+        > status - (str) outcome of simulation
+        > planet - (str) which planet became unstable,
+        if any
+        > time - (float) timestamp of instability, in
+        years.
     """
     with open(info_file) as f:
         lines = f.readlines()
-    if 'Integration complete.' in lines[42]:
-        status = 'stable'
-        planet = np.nan
-        time = lines[7].split()[-1]/365
-    elif 'collided with the central body' in lines[41]:
-        status = 'hit star'
-        planet = lines[41].split()[0]
-        time = lines[41].split()[-1]
-    elif 'was hit by' in lines[41]:
-        status = 'hit planet'
-        planet = lines[41].split()[0]
-        time = lines[41].split()[-1]
-    elif 'ejected at' in lines[41]:
-        status = 'ejected'
-        planet = lines[41].split()[0]
-        time = lines[41].split()[-1]
+        if 'collided with the central body' in lines[41]:
+            status = 'hit star'
+            planet = lines[41].split()[0]
+            time = float(lines[41].split()[-2])
+        elif 'was hit by' in lines[41]:
+            status = 'hit planet'
+            planet = lines[41].split()[0]
+            time = float(lines[41].split()[-2])
+        elif 'ejected at' in lines[41]:
+            status = 'ejected'
+            planet = lines[41].split()[0]
+            time = float(lines[41].split()[-2])
+        elif 'Integration complete.' in lines[42]:
+            status = 'stable'
+            planet = np.nan
+            time = float(lines[7].split()[-1])/365
+        else:
+            status = 'empty'
+            planet = np.nan
+            time = np.nan
     return status, planet, time
 
 
-def read_planet(datafile):
-    headers = ['time', 'a', 'e', 'i', 'peri', 'node', 'M', 'mass']
-    planet = pd.read_csv(datafile, skiprows=4, names=headers, delim_whitespace=True)
-    return planet
-
-def kepler3(a, M):
-    global G
-    return 2*np.pi*np.sqrt(a**3/(G*M))
-
-
-def read_big(path, res, run, sim):
+def read_biginfo(completed_path, res_str, bigin, infoout):
+    """
+    Reads big.in and info.out to obtain sim info.
+    In:
+        > completed_path - (str) path to directory
+        containing completed simulations
+        > res_str - (str) species the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+        > bigin - (str) current big.in iteration, e.g.,
+        0-big.in
+        > infoout - (str) current info.out iteration,
+        e.g., 99-info.out
+    Out:
+        > curr_sim - (dict) information about the
+        current iteration of the simulation.
+    """
     global AU, Msol
-    datafile = '{}/{}/{}/input/{}'.format(path, res, run, sim)
-    with open(datafile) as f:
+    big = '{}/{}/input/{}'.format(completed_path, res_str, bigin)
+    info = '{}/{}/info/{}'.format(completed_path, res_str, infoout)
+    try:
+        status = get_status(info)
+        #print(status) # DEBUG
+    except IndexError:
+        status = 'empty'
+    with open(big) as f:
         lines = f.readlines()
-    curr_sim = {'name': '{}_{}_{}'.format(res, run, sim),
-                'pimass': float(lines[6].split()[1][2:]), # Mjup
-                'pomass': float(lines[10].split()[1][2:]),
-                'smass': float(1), # Msol
-                'piper': kepler3(float(lines[7].split()[0])*AU, Msol) / (60*60*24*365), # years
-                'poper': kepler3(float(lines[11].split()[0])*AU, Msol) / (60*60*24*365)}
+        curr_sim = {'name': '{}_{}'.format(res_str, big),
+                    'pimass': float(lines[6].split()[1][2:]), # Mjup
+                    'pomass': float(lines[10].split()[1][2:]), # Mjup
+                    'smass': float(1), # Msol
+                    'piper': kepler3(float(lines[7].split()[0])*AU, Msol) / (60*60*24*365), # yrs
+                    'poper': kepler3(float(lines[11].split()[0])*AU, Msol) / (60*60*24*365), # yrs
+                    'status': status
+                    }
     return curr_sim
 
 
-def MM_sim_data(path):
-    resonances = ('2-1', '5-3', '3-2', '7-5', '4-3')
-    sim_data = {'21': [], '53': [], '32': [], '75': [], '43': []}
-    for res in resonances:
-        try:
-            runs = [run for run in os.listdir('{}/{}'.format(path, res)) if re.match('[0-9]+$', run)]
-            for run in runs:
-                inputs = os.listdir('{}/{}/{}/input/'.format(path, res, run))
-                for bigin in inputs:
-                    sim_data[res[:1] + res[-1]].append(read_big(path, res, run, bigin))
-        except:
-            pass
-    return sim_data
+def MM_sim_results(completed_path, res_str):
+    """
+    Creates list of results of all iterations of simulations
+    for the resonance under consideration.
+    In:
+        > completed_path - (str) path to directory
+        containing completed simulations
+        > res_str - (str) species the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+    Out:
+        > sim_results - (1xN list) info on outcomes of
+        all iterations of simulation for resonance under
+        consideration.
+    """
+    sim_results = []
+    bigins = listdir_nohidden('{}/{}/input/'.format(completed_path, res_str))
+    infoouts = listdir_nohidden('{}/{}/info/'.format(completed_path, res_str))
+    for i in range(len(bigins)):
+        sim_results.append(read_biginfo(completed_path, res_str, bigins[i], infoouts[i]))
+    return sim_results
 
+
+# # # # # # # # # # # # # # #
+# SIM TIME EVOL
+# # # # # # # # # # # # # # #
+def read_planet(aeifile):
+    """
+    Reads .aei file containing time-evolution of planets.
+    In:
+        > aeifile - (str) path to planet.aei file
+    Out:
+        > planet - (pandas dict) read time-dependent
+        properties of planet in simulation.
+    """
+    headers = ['time', 'a', 'e', 'i', 'peri', 'node', 'M', 'mass']
+    planet = pd.read_csv(aeifile, skiprows=4, names=headers, delim_whitespace=True)
+    return planet
+
+
+def kepler3(a, M):
+    """
+    Kepler's third law.
+    In:
+        > a - (float or int) semi-major axis
+        > M - (float or int) star mass
+    Out:
+        > T - (float) orbital period of planetary
+        companion.
+    """
+    global G
+    T = 2*np.pi*np.sqrt(a**3/(G*M))
+    return T
 
 # # # # # # # # # # # # # # #
 # STABILITY BOUNDARY
 # # # # # # # # # # # # # # #
-def stability_boundary(resonance):
+def stability_boundary(res_str):
+    """
+    Obtain x + y data of analytical stability boundary as given by
+    "Dynamics of Systems of Two Close Planets", Gladman, B., 1993.
+    In:
+        > res_str - (str) species the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+    Out:
+        > X, Y, mumin, mumax - see stab() below
+        > x[1:], y[1:] - minimum x and y vals.
+    """
     def fun(x, y, delta):
-        return 2 * 3**(1/6) * (x+y)**(1/3) + 2 * 3**(1/3) * (x+y)**(2/3) - (11*x+7*y) / (3**(11/6) * (x+y)**(1/3)) - delta
+        """
+        Function for fitting, as given by Gladman (1993).
+        In:
+            > x, y - (undefined) independent variables
+            > delta - (float) normalised separation of semi-major
+            axes of planet pair
+        Out:
+            > eqn23 - (function) of the form of eqn. 23 in
+            the source paper.
+        """
+        eqn23 = 2 * 3**(1/6) * (x+y)**(1/3) + 2 * 3**(1/3) * (x+y)**(2/3) - (11*x+7*y) / (3**(11/6) * (x+y)**(1/3)) - delta
+        return eqn23
 
-    def stab(resonance):
+    def stab(res_float):
+        """
+        TO COME BACK TO
+        """
         x = sym.Symbol('x')
-        leeDelta = resonance**(2/3) - 1
+        leeDelta = res_float**(2/3) - 1
         mumax = sym.solve(2*3**(1/6) * (x)**(1/3) + 2*3**(1/3) * (x)**(2/3) - 11*x / (3**(11/6) * x**(1/3)) - leeDelta, x)
         mumin = sym.solve(2*3**(1/6) * (2*x)**(1/3) + 2*3**(1/3) * (2*x)**(2/3) - 18*x / (3**(11/6) * (2*x)**(1/3)) - leeDelta, x)
         X = [0, float(mumin[0]), float(mumax[0])]
         Y = [float(mumax[0]), float(mumin[0]), 0]
         return X, Y, mumin, mumax, leeDelta
 
-    resonance = int(resonance[0]) / int(resonance[1])
-    X, Y, mumin, mumax, leeDelta = stab(resonance)
+    res_float = int(res_str[0]) / int(res_str[-1])
+    X, Y, mumin, mumax, leeDelta = stab(res_float)
     y = np.linspace(0, Y[1], 100)
     x = [float(optimize.brentq(fun, 0, X[2]+.01, args=(y[i], leeDelta))) for i in range(0, len(y))]
     return X, Y, mumin, mumax, x[1:], y[1:]
 
 
 # # # # # # # # # # # # # # #
-# MAKE FIGURE
+# FIGURE
 # # # # # # # # # # # # # # #
-def stability_fig_setup(resonance):
+def stability_fig_setup(res_str):
+    """
+    Set up main figure displaying mu1-mu2.
+    In:
+        > res_str - (str) species the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+    Out:
+        > fig, ax - (objects) matplotlib.pylot figure
+        and axis objects
+        > boundary - (2xN array) coordinates of stability
+        boundary points for use with observed planet
+        annotation (i.e., only annotating 'interesting'
+        systems which lie outside of the boundary).
+    """
     m_lims = {'21': (0, 14.15e-3), '53': (0, 4.15e-3), '32': (0, 4.5e-3), '75': (0, 2.87e-3), '43': (0, 1.42e-3)}
     fig, ax = plt.subplots()
-    ax.set_xlim(m_lims[resonance])
-    ax.set_ylim(m_lims[resonance])
+    ax.set_xlim(m_lims[res_str])
+    ax.set_ylim(m_lims[res_str])
     ax.set_xlabel('$\mu_1\ [M_1/M_\odot]$')
     ax.set_ylabel('$\mu_2\ [M_2/M_\odot]$')
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 12))
-    ax.set_title('{}:{}'.format(*resonance))
-    boundary = plot_boundary(resonance, fig, ax)
+    ax.set_title('{}:{}'.format(*res_str))
+    boundary = plot_boundary(res_str, fig, ax)
     return fig, ax, boundary
 
 
-def plot_boundary(resonance, fig, ax):
-    boundary = stability_boundary(resonance)
+def plot_boundary(res_str, fig, ax):
+
+    boundary = stability_boundary(res_str)
     limit, = ax.plot(boundary[4], boundary[5], 'b--', label='Analytical limit', linewidth=1)
     ax.plot(boundary[5], boundary[4], 'b--', linewidth=1)
     return boundary
 
 
-def plot_observed(observed, resonance, fig, ax, boundary, color, label):
+def plot_observed(observed, res_str, fig, ax, boundary, color, label):
     mumin, = boundary[2]
     mumax, = boundary[3]
-    for system in observed[resonance]:
+    for system in observed[res_str]:
         pi_mass = system['pi_mass']
         sig_pi_mass = system['sig_pi_mass']
         po_mass = system['po_mass']
@@ -309,3 +436,42 @@ def plot_observed(observed, resonance, fig, ax, boundary, color, label):
                 ax.annotate(system['name'], (mu_i, mu_o))
         except:
             pass
+
+
+def plot_sims(sim_results, res_str, fig, ax):
+    """
+    sim:
+    'name': '{}_{}'.format(res_str, bigin]),
+    'pimass': float(lines[6].split()[1][2:]), # Mjup
+    'pomass': float(lines[10].split()[1][2:]), # Mjup
+    'smass': float(1), # Msol
+    'piper': kepler3(float(lines[7].split()[0])*AU, Msol) / (60*60*24*365), # yrs
+    'poper': kepler3(float(lines[11].split()[0])*AU, Msol) / (60*60*24*365), # yrs
+    'status': get_status(infoout)
+    }
+
+    status:
+    stable
+    hit star
+    hit planet
+    ejected
+    """
+    for sim in sim_results:
+        x = sim['pimass'] / sim['smass']
+        y = sim['pomass'] / sim['smass']
+        status = sim['status']
+        print(status) # DEBUG
+        if status == 'stable':
+            print(status) # DEBUG
+            ax.plot(x, y, 'k.', ms=3.2, mew=3.2)
+        elif status == 'hit star':
+            ax.plot(x, y, marker='*', c=((1, .9, .2)), ms=7, mew=.05)
+        elif status == 'hit planet':
+            ax.plot(x, y, marker='.', c=((1, 0, 0)), ms=1, mew=5)
+        elif status == 'ejected':
+            ax.plot(x, y, marker='^', c=((1, .5, 0)), ms=5, mew=.05)
+        elif status == 'empty':
+            ax.plot(x, y, marker='s', c=((0, 0, 1)), ms=5, mew=.05)
+        else:
+            pass
+    return fig, ax
