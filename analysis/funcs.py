@@ -219,23 +219,24 @@ def get_status(info_file):
     """
     with open(info_file) as f:
         lines = f.readlines()
-        if 'collided with the central body' in lines[41]:
-            status = 'hit star'
-            planet = lines[41].split()[0]
-            time = float(lines[41].split()[-2])
-        elif 'was hit by' in lines[41]:
-            status = 'hit planet'
-            planet = lines[41].split()[0]
-            time = float(lines[41].split()[-2])
-        elif 'ejected at' in lines[41]:
-            status = 'ejected'
-            planet = lines[41].split()[0]
-            time = float(lines[41].split()[-2])
-        elif 'Integration complete.' in lines[42]:
-            status = 'stable'
-            planet = np.nan
-            time = float(lines[7].split()[-1])/365
-        else:
+        try:
+            if 'collided with the central body' in lines[41]:
+                status = 'hit star'
+                planet = lines[41].split()[0]
+                time = float(lines[41].split()[-2])
+            elif 'was hit by' in lines[41]:
+                status = 'hit planet'
+                planet = lines[41].split()[0]
+                time = float(lines[41].split()[-2])
+            elif 'ejected at' in lines[41]:
+                status = 'ejected'
+                planet = lines[41].split()[0]
+                time = float(lines[41].split()[-2])
+            elif 'Integration complete.' in lines[42]:
+                status = 'stable'
+                planet = np.nan
+                time = float(lines[7].split()[-1])/365
+        except IndexError:
             status = 'empty'
             planet = np.nan
             time = np.nan
@@ -261,11 +262,7 @@ def read_biginfo(completed_path, res_str, bigin, infoout):
     global AU, Msol
     big = '{}/{}/input/{}'.format(completed_path, res_str, bigin)
     info = '{}/{}/info/{}'.format(completed_path, res_str, infoout)
-    try:
-        status = get_status(info)
-        #print(status) # DEBUG
-    except IndexError:
-        status = 'empty'
+    status = get_status(info)
     with open(big) as f:
         lines = f.readlines()
         curr_sim = {'name': '{}_{}'.format(res_str, big),
@@ -344,25 +341,38 @@ def stability_boundary(res_str):
         under consideration, e.g., '53', '5:3', '5-3'
     Out:
         > X, Y, mumin, mumax - see stab() below
-        > x[1:], y[1:] - minimum x and y vals.
+        > x[1:], y[1:] - x and y arrays up to the x=y
+        point (as stability boundary is symmetric in the
+        x=y axis).
     """
-    def fun(x, y, delta):
+    def fun(x, y, leeDelta):
         """
-        Function for fitting, as given by Gladman (1993).
+        Function for fitting, as given by Gladman (1993). To be
+        used for finding stability boundary.
         In:
             > x, y - (undefined) independent variables
-            > delta - (float) normalised separation of semi-major
+            > leeDelta - (float) normalised separation of semi-major
             axes of planet pair
         Out:
             > eqn23 - (function) of the form of eqn. 23 in
             the source paper.
         """
-        eqn23 = 2 * 3**(1/6) * (x+y)**(1/3) + 2 * 3**(1/3) * (x+y)**(2/3) - (11*x+7*y) / (3**(11/6) * (x+y)**(1/3)) - delta
+        eqn23 = 2 * 3**(1/6) * (x+y)**(1/3) + 2 * 3**(1/3) * (x+y)**(2/3) - (11*x+7*y) / (3**(11/6) * (x+y)**(1/3)) - leeDelta
         return eqn23
 
     def stab(res_float):
         """
-        TO COME BACK TO
+        Finds limits of stability boundary (i.e., minimum and
+        maximum mu values up to the x=y point).
+        In:
+            > res_float - (float) fractional value of resonance under
+            consideration, i.e., 2/1=2.0, 5/3=1.66667, and so on
+        Out:
+            > X, Y - (1x3 arrays) denote the maximum point,
+            x=y symmetry point and minimum point, in both axes.
+            NOTE: X[1]==Y[1]
+            > leeDelta - (float) normalised separation of semi-major
+            axes of planet pair.
         """
         x = sym.Symbol('x')
         leeDelta = res_float**(2/3) - 1
@@ -391,10 +401,8 @@ def stability_fig_setup(res_str):
     Out:
         > fig, ax - (objects) matplotlib.pylot figure
         and axis objects
-        > boundary - (2xN array) coordinates of stability
-        boundary points for use with observed planet
-        annotation (i.e., only annotating 'interesting'
-        systems which lie outside of the boundary).
+        > boundary - (1xN array) information on stability
+        boundary [see output of stability_boundary() function].
     """
     m_lims = {'21': (0, 14.15e-3), '53': (0, 4.15e-3), '32': (0, 4.5e-3), '75': (0, 2.87e-3), '43': (0, 1.42e-3)}
     fig, ax = plt.subplots()
@@ -409,16 +417,48 @@ def stability_fig_setup(res_str):
 
 
 def plot_boundary(res_str, fig, ax):
-
+    """
+    Plots the stability boundary given by Gladman (1993) [see
+    stability_boundary() function] on a given figure and axis
+    object.
+    In:
+        > res_str - (str) species the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+        > fig, ax - (objects) matplotlib.pylot figure
+        and axis objects
+    Out:
+        > boundary - (1xN array) information on stability
+        boundary [see output of stability_boundary() function].
+    """
     boundary = stability_boundary(res_str)
-    limit, = ax.plot(boundary[4], boundary[5], 'b--', label='Analytical limit', linewidth=1)
-    ax.plot(boundary[5], boundary[4], 'b--', linewidth=1)
+    xdat = np.append(boundary[2], np.flip(boundary[3]))
+    ydat = np.append(boundary[3], np.flip(boundary[2]))
+    ax.plot(xdat, ydat, 'b--', label='Analytical limit', linewidth=1)
     return boundary
 
 
 def plot_observed(observed, res_str, fig, ax, boundary, color, label):
-    mumin, = boundary[2]
-    mumax, = boundary[3]
+    """
+    Plots observed systems on a given figure and axis object.
+    In:
+        > observed - dictionary containing all systems detected to be
+        in resonance from a given online repository [see find_resonances()
+        function for details]. Dictionary keys are ['21', '53', '32', '75',
+        '43'], and sub-keys can be found by referring to the function
+        > res_str - (str) species the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+        > fig, ax - (objects) matplotlib.pylot figure
+        and axis objects
+        > boundary - (1xN array) information on stability
+        boundary [see output of stability_boundary() function]
+        > color - desired color of points
+        > label - desired label of points
+    Out:
+         > fig, ax - (objects) matplotlib.pylot figure
+        and axis objects.
+    """
+    mumin = boundary[2][-1]
+    mumax = boundary[2][0]
     for system in observed[res_str]:
         pi_mass = system['pi_mass']
         sig_pi_mass = system['sig_pi_mass']
@@ -426,43 +466,43 @@ def plot_observed(observed, res_str, fig, ax, boundary, color, label):
         sig_po_mass = system['sig_po_mass']
         s_mass = system['s_mass']
         sig_s_mass = system['sig_s_mass']
+        name = system['name']
         mu_i, errs_i = mu_error(pi_mass, sig_pi_mass, s_mass, sig_s_mass)
         mu_o, errs_o = mu_error(po_mass, sig_po_mass, s_mass, sig_s_mass)
-        ax.errorbar(mu_i, mu_o, xerr=[[errs_i[0]], [errs_i[1]]], yerr=[[errs_o[0]], [errs_o[1]]], ecolor=color, elinewidth=.5, capsize=2, fmt='.', color=color, label=label)
+        errs_i = [[errs_i[0]], [errs_i[1]]]
+        errs_o = [[errs_o[0]], [errs_o[1]]]
+        ax.errorbar(mu_i, mu_o, xerr=errs_i, yerr=errs_o,
+                ecolor=color, elinewidth=.5, capsize=2, fmt='.', color=color, label=label)
         first_cond = - (mumax - mumin)/mumin*mu_i + mumax
         second_cond = - mumin/(mumax - mumin)*mu_i + mumax*mumin/(mumax - mumin)
         try:
             if mu_o > first_cond and mu_o > second_cond:
-                ax.annotate(system['name'], (mu_i, mu_o))
+                ax.annotate(name, (mu_i, mu_o))
         except:
             pass
+        return fig, ax
 
 
 def plot_sims(sim_results, res_str, fig, ax):
     """
-    sim:
-    'name': '{}_{}'.format(res_str, bigin]),
-    'pimass': float(lines[6].split()[1][2:]), # Mjup
-    'pomass': float(lines[10].split()[1][2:]), # Mjup
-    'smass': float(1), # Msol
-    'piper': kepler3(float(lines[7].split()[0])*AU, Msol) / (60*60*24*365), # yrs
-    'poper': kepler3(float(lines[11].split()[0])*AU, Msol) / (60*60*24*365), # yrs
-    'status': get_status(infoout)
-    }
-
-    status:
-    stable
-    hit star
-    hit planet
-    ejected
+    Plots simulation results on give figure and axis
+    objects.
+    In:
+        > sim_results - (dictionary) information on results
+        of simulation of the resonance under consideration
+        > res_str - (str) species the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+        > fig, ax - (objects) matplotlib.pylot figure
+        and axis objects
+    Out:
+        > fig, ax - (objects) matplotlib.pylot figure
+        and axis objects.
     """
     for sim in sim_results:
         x = sim['pimass'] / sim['smass']
         y = sim['pomass'] / sim['smass']
-        status = sim['status']
-        print(status) # DEBUG
+        status = sim['status'][0]
         if status == 'stable':
-            print(status) # DEBUG
             ax.plot(x, y, 'k.', ms=3.2, mew=3.2)
         elif status == 'hit star':
             ax.plot(x, y, marker='*', c=((1, .9, .2)), ms=7, mew=.05)
