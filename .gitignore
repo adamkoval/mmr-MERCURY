@@ -1,4 +1,8 @@
-# Completed simulation output directory
+# mcm directory
+envfile.txt
+
+# Ignore completed simulation output directory
+# which is generated unpon running the code
 *completed*/
 
 # Misc
