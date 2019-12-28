@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import funcs as fn
+import func as fn
 
 from matplotlib.lines import Line2D
 

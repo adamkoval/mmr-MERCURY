@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-import funcs as fn
+import func as fn
 
 resonance = '53'
 completed_path = '../completed'
