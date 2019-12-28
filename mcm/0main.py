@@ -7,7 +7,7 @@ from subprocess import Popen
 
 from func import read_envfile
 
-pyenv = read_envfile('envfile.txt')
+pyenv, bashenv = read_envfile('envfile.txt')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--resonance', '-res',
@@ -56,11 +56,11 @@ for k in range(N_completed, N_runs+N_completed):
     p_randomize.wait()
 
     # Cleaning up old files from mercury dir
-    p_cleanup = Popen(['bash', 'cleanup.sh'])
+    p_cleanup = Popen([bashenv, 'cleanup.sh'])
     p_cleanup.wait()
 
     # Execute and check if Mercury is running
-    p_check_mercury = Popen(['./check_mercury.sh'])
+    p_check_mercury = Popen([bashenv, 'check_mercury.sh'])
     p_check_mercury.wait()
     print('Mercury completed, copying files')
 
