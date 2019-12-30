@@ -11,3 +11,5 @@ __pycache__/
 *.swp
 *.swo
 *.pyc
+mcm/resonance_graph.py
+mcm/resonance_graph.pdf
