@@ -1,15 +1,17 @@
 # Masses
-# 0-12Mj for 2:1, 
-# 0-6Mj for 5:3,
-# 0.2-3.8Mj for 3:2,
-# 0-3.5Mj for 7:5,
-# 0-3.5Mj for 4:3.
+# 0-15Mj for 2:1, 
+# 0-4.1Mj for 5:3,
+# 0-3.8Mj for 3:2,
+# 0-3Mj for 7:5,
+# 0-1.4Mj for 4:3.
 
 import numpy as np
 import sys
 import os
 import re
 import argparse
+
+import func as fn
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--resonance', '-res',
@@ -18,43 +20,44 @@ parser.add_argument('--resonance', '-res',
 args = parser.parse_args()
 
 # Some definitions
-resonance = args.resonance
-higher = max(float(resonance[0]), float(resonance[1]))
-lower = min(float(resonance[0]), float(resonance[1]))
+res_str = args.resonance
+Tnorm_o = max(float(res_str[0]), float(res_str[1]))
+Tnorm_i = min(float(res_str[0]), float(res_str[1]))
 Mjup = 1.898e27 # kg
 Msol = 1.989e30 # kg
 
 # Mass ranges
-Sum = higher + lower
-if Sum == 3:
+Sum = Tnorm_o + Tnorm_i
+if Sum == 3: # 2:1
     range0 = 0.
     rangef = 15.
-elif Sum == 8:
-    range0 = .2
+elif Sum == 8: # 5:3
+    range0 = 0.
     rangef = 4.1
-elif Sum == 5:
-    range0 = 3.5
-    rangef = 4.45
-elif Sum == 12:
-    range0 = 0.93
-    rangef = 1.39
-elif Sum == 7:
-    range0 = 2.
-    rangef = 8.
+elif Sum == 5: # 3:2
+    range0 = 0.
+    rangef = 3.8
+elif Sum == 12: # 7:5
+    range0 = 0.
+    rangef = 3.
+elif Sum == 7: # 4:3
+    range0 = 0.
+    rangef = 1.4
 else:
     print("Please input a valid resonance ('21', '53', '32', '75' or '43')")
     sys.exit()
 
 # Masses of inner (planet1) and outer (planet2) planets
-new_mi = np.random.uniform(range0, rangef) * Mjup / Msol
-new_mo = np.random.uniform(range0, rangef) * Mjup / Msol
+new_mi = np.random.uniform(range0, rangef) * Mjup/Msol
+new_mo = np.random.uniform(range0, rangef) * Mjup/Msol
 
 # Initial positions (must be improved)
-a0_range = (5, 6)
-new_a0i = np.random.uniform(*a0_range)
+new_a0i = 5
 
-factor = higher/lower
-new_a0o = factor**(2/3) * new_a0i + .2
+res_float = Tnorm_o / Tnorm_i
+out_disp_frac = .4
+Dres_out = fn.disp(res_float, out_disp_frac, 'out')
+new_a0o = (res_float + Dres_out)**(2/3) * new_a0i
 
 # Migration timescale
 new_p1i = 1.e15
@@ -62,7 +65,11 @@ new_p1o = 1.e6
 
 # Migration ditance (needs changing)
 new_p2i = 0.0
-new_p2o = -.3
+
+inn_disp_frac = .1
+Dres_in = fn.disp(res_float, inn_disp_frac, 'in')
+fin_a0o = (res_float - Dres_in)**(2/3) * new_a0i
+new_p2o = fin_a0o - new_a0o
 
 # Inclination
 new_incli = 0.0
