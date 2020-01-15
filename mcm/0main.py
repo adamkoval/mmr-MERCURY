@@ -22,6 +22,9 @@ resonance = args.resonance
 N_runs = int(args.N_runs)
 
 # Test for nominal resonance directory
+if not os.path.exists('../completed'):
+    os.mkdir('../completed')
+
 path = '../completed/{}'.format(resonance)
 if not os.path.exists(path):
     os.mkdir(path)
