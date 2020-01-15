@@ -329,6 +329,53 @@ def kepler3(a, M):
     T = 2*np.pi*np.sqrt(a**3/(G*M))
     return T
 
+
+def resvar(planet_i, planet_o, res_str):
+    """
+    In:
+        > planet_i, planet_o - (csv) data read from
+        planet1.aei and planet2.aei files for the
+        the inner and outer planets resp.
+    Out:
+        > phi1 - (1xN array) time-evolution of
+        resonance variable with
+        {j1, j2, j3, j4} = {p, -q, -(p-1), 0}
+        > phi2 - (1xN array) time-evolution of
+        resonance variable with
+        {j1, j2, j3, j4} = {p, -q, 0, -(p-1)}
+    """
+    def truncate_longer(arr1, arr2):
+        """
+        Truncate the longer array to the length of the
+        shorter one.
+        In:
+            > arr1, arr2 - (1xN arrays)
+        Out:
+            > arr1, arr2 - (1xN arrays) after being passed
+            through condition.
+        """
+        if len(arr1) > len(arr2):
+            print('Truncating arr1')
+            return arr1[:len(arr2)], arr2
+        elif len(arr2) > len(arr1):
+            print('Truncating arr2')
+            return arr1, arr2[:len(arr1)]
+        else:
+            print('Not truncating')
+            return arr1, arr2
+
+    planet_i, planet_o = truncate_longer(planet_i, planet_o)
+    Lambda_i = planet_i['node'] + planet_i['peri'] # Longidute of periapsis
+    Lambda_o = planet_o['node'] + planet_o['peri']
+    omega_i = Lambda_i + planet_i['M'] # Mean longitude
+    omega_o = Lambda_o + planet_o['M']
+    p = int(res_str[0])
+    q = int(res_str[1])
+    phi1 = p*Lambda_o - q*Lambda_i - (p - q)*omega_o
+    phi2 = p*Lambda_o - q*Lambda_i - (p - q)*omega_i
+    t_phi = planet_i['time']
+    return phi1, phi2, t_phi
+
 # # # # # # # # # # # # # # #
 # STABILITY BOUNDARY
 # # # # # # # # # # # # # # #
@@ -357,7 +404,7 @@ def stability_boundary(res_str):
             > eqn23 - (function) of the form of eqn. 23 in
             the source paper.
         """
-        eqn23 = 2 * 3**(1/6) * (x+y)**(1/3) + 2 * 3**(1/3) * (x+y)**(2/3) - (11*x+7*y) / (3**(11/6) * (x+y)**(1/3)) - leeDelta
+        eqn23 = 2*3**(1/6)*(x + y)**(1/3) + 2*3**(1/3)*(x + y)**(2/3) - (11*x + 7*y)/(3**(11/6)*(x + y)**(1/3)) - leeDelta
         return eqn23
 
     def stab(res_float):
