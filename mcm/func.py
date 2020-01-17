@@ -48,3 +48,29 @@ def disp(res_float, fraction, direction=''):
             elif direction == 'in':
                 disp = fraction * (res_floats[i] - res_floats[i-1])
     return disp
+
+
+def count_completed(res_str):
+    """
+    Counts number of files present in the 'completed' directory of
+    the given resonance.
+    In:
+        > res_str - (str) specifies the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+    Out:
+        > N_completed - (int) number of completed runs
+        present in the directory.
+    """
+    print('Checking directory structure.')
+    dirs = ['planets', 'info', 'input']
+    numbers = {}
+    for _dir in dirs:
+        numbers[_dir] = len(os.listdir('../completed/{}/{}'.format(res_str, _dir)))
+        if numbers['planets']//2 == numbers['info'] == numbers['input']:
+            N_completed = int(numbers['info'])
+        else:
+            print('Please check the numbers of runs in each directory:\n',
+                   'N_planets: {}'.format(numbers['planets']),
+                   'N_info: {}'.format(numbers['info']),
+                   'N_input: {}'.format(numbers['input']))
+            sys.exit()
