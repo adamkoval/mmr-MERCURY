@@ -16,10 +16,14 @@ parser.add_argument('--resonance', '-res',
 parser.add_argument('--no_runs', '-no',
                     dest='N_runs',
                     action='store')
+parser.add_argument('--process_no', '-pno',
+                    dest='process_no',
+                    action='store')
 args = parser.parse_args()
 
 resonance = args.resonance
 N_runs = int(args.N_runs)
+pno = str(args.process_no)
 
 # Test for nominal resonance directory
 if not os.path.exists('../completed'):
@@ -55,19 +59,19 @@ for k in range(N_completed, N_runs+N_completed):
     print('Run = {}'.format(k))
 
     # Randomizing input
-    p_randomize = Popen([pyenv, 'randomize.py', '-res', resonance])
+    p_randomize = Popen([pyenv, 'randomize.py', '-res', resonance, '-pno', pno])
     p_randomize.wait()
 
     # Cleaning up old files from mercury dir
-    p_cleanup = Popen([bashenv, 'cleanup.sh'])
+    p_cleanup = Popen([bashenv, 'cleanup.sh', pno])
     p_cleanup.wait()
 
     # Execute and check if Mercury is running
-    p_check_mercury = Popen([bashenv, 'check_mercury.sh'])
+    p_check_mercury = Popen([bashenv, 'check_mercury.sh', pno])
     p_check_mercury.wait()
     print('Mercury completed, copying files')
 
-    shutil.copyfile('mercury/planet1.aei', '../completed/{}/planets/{}-planet1.aei'.format(resonance, k))
-    shutil.copyfile('mercury/planet2.aei', '../completed/{}/planets/{}-planet2.aei'.format(resonance, k))
-    shutil.copyfile('mercury/info.out', '../completed/{}/info/{}-info.out'.format(resonance, k))
-    shutil.copyfile('mercury/big.in', '../completed/{}/input/{}-big.in'.format(resonance, k))
+    shutil.copyfile('mercury_{}/planet1.aei'.format(pno), '../completed/{}/planets/{}-planet1.aei'.format(resonance, k))
+    shutil.copyfile('mercury_{}/planet2.aei'.format(pno), '../completed/{}/planets/{}-planet2.aei'.format(resonance, k))
+    shutil.copyfile('mercury_{}/info.out'.format(pno), '../completed/{}/info/{}-info.out'.format(resonance, k))
+    shutil.copyfile('mercury_{}/big.in'.format(pno), '../completed/{}/input/{}-big.in'.format(resonance, k))
