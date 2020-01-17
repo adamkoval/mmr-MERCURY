@@ -4,6 +4,8 @@
 #
 ##
 import numpy as np
+import os
+import sys
 
 def read_envfile(envfile):
     """
@@ -66,11 +68,14 @@ def count_completed(res_str):
     numbers = {}
     for _dir in dirs:
         numbers[_dir] = len(os.listdir('../completed/{}/{}'.format(res_str, _dir)))
-        if numbers['planets']//2 == numbers['info'] == numbers['input']:
-            N_completed = int(numbers['info'])
-        else:
-            print('Please check the numbers of runs in each directory:\n',
-                   'N_planets: {}'.format(numbers['planets']),
-                   'N_info: {}'.format(numbers['info']),
-                   'N_input: {}'.format(numbers['input']))
-            sys.exit()
+    if numbers['planets']//2 == numbers['info'] == numbers['input']:
+        N_completed = int(numbers['info'])
+    else:
+        print('Please check the numbers of runs in each directory:\n',
+               'N_planets: {}'.format(numbers['planets']//2),
+               'N_info: {}'.format(numbers['info']),
+               'N_input: {}'.format(numbers['input']))
+        sys.exit()
+
+
+#def make_flag(N_completed):

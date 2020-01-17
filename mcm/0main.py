@@ -5,9 +5,9 @@ import sys
 import shutil
 from subprocess import Popen
 
-from func import read_envfile
+import func as fn
 
-pyenv, bashenv = read_envfile('envfile.txt')
+pyenv, bashenv = fn.read_envfile('envfile.txt')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--resonance', '-res',
@@ -21,7 +21,7 @@ parser.add_argument('--process_no', '-pno',
                     action='store')
 args = parser.parse_args()
 
-resonance = args.resonance
+res_str = args.resonance
 N_runs = int(args.N_runs)
 pno = str(args.process_no)
 
@@ -29,7 +29,7 @@ pno = str(args.process_no)
 if not os.path.exists('../completed'):
     os.mkdir('../completed')
 
-path = '../completed/{}'.format(resonance)
+path = '../completed/{}'.format(res_str)
 if not os.path.exists(path):
     os.mkdir(path)
     os.mkdir('{}/planets'.format(path))
@@ -39,27 +39,16 @@ else:
     pass
 
 # Count the number of files which exist already
-print('Checking directory structure.')
-dirs = ['planets', 'info', 'input']
-numbers = {}
-for _dir in dirs:
-    numbers[_dir] = len(os.listdir('../completed/{}/{}'.format(resonance, _dir)))
-
-if numbers['planets']//2 == numbers['info'] == numbers['input']:
-    N_completed = int(numbers['info'])
-else:
-    print('Please check the numbers of runs in each directory:\n',
-          'N_planets: {}'.format(numbers['planets']),
-          'N_info: {}'.format(numbers['info']),
-          'N_input: {}'.format(numbers['input']))
-    sys.exit()
+N_completed = fn.count_completed(res_str)
 
 # Main loop
-for k in range(N_completed, N_runs+N_completed):
+k = 0
+while k < N_runs:
+#for k in range(N_completed, N_runs+N_completed):
     print('Run = {}'.format(k))
 
     # Randomizing input
-    p_randomize = Popen([pyenv, 'randomize.py', '-res', resonance, '-pno', pno])
+    p_randomize = Popen([pyenv, 'randomize.py', '-res', res_str, '-pno', pno])
     p_randomize.wait()
 
     # Cleaning up old files from mercury dir
@@ -69,9 +58,11 @@ for k in range(N_completed, N_runs+N_completed):
     # Execute and check if Mercury is running
     p_check_mercury = Popen([bashenv, 'check_mercury.sh', pno])
     p_check_mercury.wait()
+    N_completed = fn.count_completed(res_str)
     print('Mercury completed, copying files')
 
-    shutil.copyfile('mercury_{}/planet1.aei'.format(pno), '../completed/{}/planets/{}-planet1.aei'.format(resonance, k))
-    shutil.copyfile('mercury_{}/planet2.aei'.format(pno), '../completed/{}/planets/{}-planet2.aei'.format(resonance, k))
-    shutil.copyfile('mercury_{}/info.out'.format(pno), '../completed/{}/info/{}-info.out'.format(resonance, k))
-    shutil.copyfile('mercury_{}/big.in'.format(pno), '../completed/{}/input/{}-big.in'.format(resonance, k))
+    shutil.copyfile('mercury_{}/planet1.aei'.format(pno), '../completed/{}/planets/{}-planet1.aei'.format(res_str, N_completed))
+    shutil.copyfile('mercury_{}/planet2.aei'.format(pno), '../completed/{}/planets/{}-planet2.aei'.format(res_str, N_completed))
+    shutil.copyfile('mercury_{}/info.out'.format(pno), '../completed/{}/info/{}-info.out'.format(res_str, N_completed))
+    shutil.copyfile('mercury_{}/big.in'.format(pno), '../completed/{}/input/{}-big.in'.format(res_str, N_completed))
+    k += 1
