@@ -17,10 +17,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--resonance', '-res',
                     dest='resonance',
                     action='store')
+parser.add_argument('--process_no', '-pno',
+                    dest='process_no',
+                    action='store')
 args = parser.parse_args()
 
 # Some definitions
 res_str = args.resonance
+pno = args.process_no
 Tnorm_o = max(float(res_str[0]), float(res_str[1]))
 Tnorm_i = min(float(res_str[0]), float(res_str[1]))
 Mjup = 1.898e27 # kg
@@ -85,7 +89,7 @@ new_Mo = np.random.uniform(360)
 
 ####################################
 # Amending file
-with open('mercury/big.in', 'r') as f:
+with open('mercury_{}/big.in'.format(pno), 'r') as f:
     bigin = f.read()
 
 # Mass
@@ -117,6 +121,6 @@ bigin = re.sub('(planet1.*\n.*\n\s*\S*\s*\S*\s*)\S*', '\g<1>{:.3f}'.format(new_M
 bigin = re.sub('(planet2.*\n.*\n\s*\S*\s*\S*\s*)\S*', '\g<1>{:.3f}'.format(new_Mo), bigin)
 
 # Writing new file
-new_f = open('mercury/big.in', 'w')
+new_f = open('mercury_{}/big.in'.format(pno), 'w')
 new_f.write(bigin)
 new_f.close()
