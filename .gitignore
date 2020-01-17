@@ -6,7 +6,7 @@ envfile.txt
 *completed*/
 
 # Mercury folder (as this should be built for each os separately)
-mcm/mercury/
+mcm/mercury*/
 
 # Misc
 __pycache__/
