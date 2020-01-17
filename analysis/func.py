@@ -469,7 +469,7 @@ def plot_boundary(res_str, fig, ax):
     stability_boundary() function] on a given figure and axis
     object.
     In:
-        > res_str - (str) species the resonance
+        > res_str - (str) specifies the resonance
         under consideration, e.g., '53', '5:3', '5-3'
         > fig, ax - (objects) matplotlib.pylot figure
         and axis objects
