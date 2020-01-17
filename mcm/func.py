@@ -63,11 +63,12 @@ def count_completed(res_str):
         > N_completed - (int) number of completed runs
         present in the directory.
     """
-    print('Checking directory structure.')
+    print('Checking completed directory for the {}:{} resonance.'.format(*res_str))
     dirs = ['planets', 'info', 'input']
     numbers = {}
     for _dir in dirs:
         numbers[_dir] = len(os.listdir('../completed/{}/{}'.format(res_str, _dir)))
+
     if numbers['planets']//2 == numbers['info'] == numbers['input']:
         N_completed = int(numbers['info'])
     else:
@@ -78,4 +79,3 @@ def count_completed(res_str):
         sys.exit()
 
 
-#def make_flag(N_completed):
