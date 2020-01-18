@@ -26,17 +26,7 @@ N_runs = int(args.N_runs)
 pno = str(args.process_no)
 
 # Test for nominal resonance directory
-if not os.path.exists('../completed'):
-    os.mkdir('../completed')
-
-path = '../completed/{}'.format(res_str)
-if not os.path.exists(path):
-    os.mkdir(path)
-    os.mkdir('{}/planets'.format(path))
-    os.mkdir('{}/info'.format(path))
-    os.mkdir('{}/input'.format(path))
-else:
-    pass
+fn.make_directories(res_str)
 
 # Count the number of files which exist already
 N_completed = fn.count_completed(res_str)
@@ -59,6 +49,7 @@ while k < N_runs:
     p_check_mercury = Popen([bashenv, 'check_mercury.sh', pno])
     p_check_mercury.wait()
     N_completed = fn.count_completed(res_str)
+    print('N_completed = {}'.format(N_completed))
     print('Mercury completed, copying files')
 
     shutil.copyfile('mercury_{}/planet1.aei'.format(pno), '../completed/{}/planets/{}-planet1.aei'.format(res_str, N_completed))
