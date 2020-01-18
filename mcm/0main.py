@@ -50,8 +50,8 @@ while k < N_runs:
     p_check_mercury = Popen([bashenv, 'check_mercury.sh', pno])
     p_check_mercury.wait()
     N_completed = fn.count_completed(res_str)
-    print(' N_completed = {}'.format(N_completed))
-    print(' Mercury completed, copying files',
+    print(' N_completed = {}\n'.format(N_completed))
+    print(' Mercury completed, copying files\n',
           '~~~~~~~~~~~~~~~~~~~~~~~~\n')
 
     shutil.copyfile('mercury_{}/planet1.aei'.format(pno), '../completed/{}/planets/{}-planet1.aei'.format(res_str, N_completed))
