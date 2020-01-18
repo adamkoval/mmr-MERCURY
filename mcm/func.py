@@ -63,7 +63,10 @@ def count_completed(res_str):
         > N_completed - (int) number of completed runs
         present in the directory.
     """
-    print('Checking completed directory for the {}:{} resonance.'.format(*res_str))
+    print('~~~~~~~~~~~~~~~~~~~~~~~~\n',
+          'count_completed():\n',
+          'Checking completed directory for the {}:{} resonance.\n'.format(*res_str),
+          '~~~~~~~~~~~~~~~~~~~~~~~~\n',)
     dirs = ['planets', 'info', 'input']
     numbers = {}
     for _dir in dirs:
@@ -71,11 +74,28 @@ def count_completed(res_str):
 
     if numbers['planets']//2 == numbers['info'] == numbers['input']:
         N_completed = int(numbers['info'])
+        return N_completed
     else:
-        print('Please check the numbers of runs in each directory:\n',
-               'N_planets: {}'.format(numbers['planets']//2),
-               'N_info: {}'.format(numbers['info']),
-               'N_input: {}'.format(numbers['input']))
+        print('~~~~~~~~~~~~~~~~~~~~~~~~\n',
+              'Please check the numbers of runs in each directory:\n',
+              'N_planets: {}\n'.format(numbers['planets']//2),
+              'N_info: {}\n'.format(numbers['info']),
+              'N_input: {}\n'.format(numbers['input']),
+              '~~~~~~~~~~~~~~~~~~~~~~~~\n')
         sys.exit()
 
+def make_directories(res_str):
+    def make_if(path):
+        if not os.path.exists(path):
+            os.mkdir(path)
+        else:
+            pass
 
+    paths = ['../completed',
+             '../completed/{}'.format(res_str),
+             '../completed/{}/planets'.format(res_str),
+             '../completed/{}/info'.format(res_str),
+             '../completed/{}/input'.format(res_str)]
+
+    for path in paths:
+        make_if(path)
