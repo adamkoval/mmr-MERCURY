@@ -16,9 +16,9 @@ elif 'mercury' not in os.listdir('.'):
     sys.exit()
 else:
     # Compile files in main folder
-    os.system('gfortran -o mercury/mercury.c mercury/mercury6_2_mig.for')
-    os.system('gfortran -o mercury/element.c mercury/element6.for')
-    os.system('gfortran -o mercury/close.c mercury/close6.for')
+    os.system('gfortran -o mercury/mercury.exe mercury/mercury6_2_mig.for')
+    os.system('gfortran -o mercury/element.exe mercury/element6.for')
+    os.system('gfortran -o mercury/close.exe mercury/close6.for')
 
     # Create 4 directories and copy over
     pnos = [1, 2, 3, 4]
@@ -38,7 +38,7 @@ else:
         shutil.copyfile('mercury/param.in', 'mercury_{}/param.in'.format(pno))
         shutil.copyfile('mercury/small.in', 'mercury_{}/small.in'.format(pno))
         shutil.copyfile('mercury/swift.inc', 'mercury_{}/swift.inc'.format(pno))
-        shutil.copyfile('mercury/mercury.c', 'mercury_{0}/mercury_{0}.c'.format(pno))
-        shutil.copyfile('mercury/element.c', 'mercury_{0}/element_{0}.c'.format(pno))
-        shutil.copyfile('mercury/close.c', 'mercury_{0}/close_{0}.c'.format(pno))
+        shutil.copyfile('mercury/mercury.exe', 'mercury_{0}/mercury_{0}.exe'.format(pno))
+        shutil.copyfile('mercury/element.exe', 'mercury_{0}/element_{0}.exe'.format(pno))
+        shutil.copyfile('mercury/close.exe', 'mercury_{0}/close_{0}.exe'.format(pno))
 
