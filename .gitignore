@@ -8,6 +8,9 @@ envfile.txt
 # Mercury folder (as this should be built for each os separately)
 mcm/mercury_*/
 
+# Compiled files
+*.exe
+
 # Misc
 __pycache__/
 *~
