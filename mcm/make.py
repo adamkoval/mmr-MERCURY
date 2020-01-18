@@ -42,3 +42,8 @@ else:
         shutil.copyfile('mercury/element.exe', 'mercury_{0}/element_{0}.exe'.format(pno))
         shutil.copyfile('mercury/close.exe', 'mercury_{0}/close_{0}.exe'.format(pno))
 
+        # Make executable
+        os.system('chmod +x mercury_{0}/mercury_{0}.exe'.format(pno))
+        os.system('chmod +x mercury_{0}/element_{0}.exe'.format(pno))
+        os.system('chmod +x mercury_{0}/close_{0}.exe'.format(pno))
+
