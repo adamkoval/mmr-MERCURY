@@ -64,7 +64,7 @@ def count_completed(res_str):
         present in the directory.
     """
     print('~~~~~~~~~~~~~~~~~~~~~~~~\n',
-          'count_completed():\n',
+          'func.py/count_completed():\n',
           'Checking completed directory for the {}:{} resonance.\n'.format(*res_str),
           '~~~~~~~~~~~~~~~~~~~~~~~~\n',)
     dirs = ['planets', 'info', 'input']
@@ -77,6 +77,7 @@ def count_completed(res_str):
         return N_completed
     else:
         print('~~~~~~~~~~~~~~~~~~~~~~~~\n',
+              'func.py/count_completed():\n',
               'Please check the numbers of runs in each directory:\n',
               'N_planets: {}\n'.format(numbers['planets']//2),
               'N_info: {}\n'.format(numbers['info']),
