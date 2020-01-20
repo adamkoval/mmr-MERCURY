@@ -10,12 +10,15 @@ mcm/mercury*/
 
 # Compiled files
 *.exe
+*.pyc
 
-# Misc
+# Auto-generated
 __pycache__/
-*~
 *.swp
 *.swo
-*.pyc
+
+# Tests + figures
+*~
 mcm/resonance_graph.py
 mcm/resonance_graph.pdf
+analysis/test_*.py
