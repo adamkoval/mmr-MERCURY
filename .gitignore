@@ -22,3 +22,4 @@ __pycache__/
 mcm/resonance_graph.py
 mcm/resonance_graph.pdf
 analysis/test_*.py
+analysis/figures/
