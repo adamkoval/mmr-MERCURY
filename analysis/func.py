@@ -527,7 +527,7 @@ def plot_observed(observed, res_str, fig, ax, boundary, color, label):
                 ax.annotate(name, (mu_i, mu_o))
         except:
             pass
-        return fig, ax
+    return fig, ax
 
 
 def plot_sims(sim_results, res_str, fig, ax):
