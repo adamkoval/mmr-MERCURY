@@ -217,25 +217,54 @@ def get_status(info_file):
         > time - (float) timestamp of instability, in
         years.
     """
+    def assign_vars(idx):
+        """
+        Returns planet and time variables read from a
+        line at row idx.
+        In:
+            > idx - (int) specifies row number in info.out
+            file (starting from 0)
+        Out:
+            > planet - (str) letter index of planet
+            > time - (float) time of interaction.
+        """
+        planet = lines[idx].split()[0]
+        time = float(lines[idx].split()[-2])
+        return planet, time
+
     with open(info_file) as f:
         lines = f.readlines()
         try:
-            if 'collided with the central body' in lines[41]:
-                status = 'hit star'
-                planet = lines[41].split()[0]
-                time = float(lines[41].split()[-2])
-            elif 'was hit by' in lines[41]:
-                status = 'hit planet'
-                planet = lines[41].split()[0]
-                time = float(lines[41].split()[-2])
-            elif 'ejected at' in lines[41]:
-                status = 'ejected'
-                planet = lines[41].split()[0]
-                time = float(lines[41].split()[-2])
+            idx = 41
+            if 'collided with the central body' in lines[idx]:
+                status, planet, time = ['hit star', *assign_vars(idx)]
+            elif 'was hit by' in lines[idx]:
+                status, planet, time = ['hit planet', *assign_vars(idx)]
+            elif 'ejected at' in lines[idx]:
+                status, planet, time = ['ejected', *assign_vars(idx)]
             elif 'Integration complete.' in lines[42]:
                 status = 'stable'
                 planet = np.nan
                 time = float(lines[7].split()[-1])/365
+            elif 'Continuing integration from dump files at' in lines[42]:
+                idx = 45
+                if 'collided with the central body' in lines[idx]:
+                    status, planet, time = ['hit star', *assign_vars(idx)]
+                elif 'was hit by' in lines[idx]:
+                    status, planet, time = ['hit planet', *assign_vars(idx)]
+                elif 'ejected at' in lines[idx]:
+                    status, planet, time = ['ejected', *assign_vars(idx)]
+                elif 'Integration complete.' in lines[46]:
+                    status = 'stable'
+                    planet = np.nan
+                    time = float(lines[7].split()[-1])/365
+            else:
+                print(' ~~~~~~~~~~~~~~~~~~~~~~~~\n',
+                      'func.py/get_status():\n',
+                      'Something went wrong! Check the above function. Quitting.\n',
+                      '~~~~~~~~~~~~~~~~~~~~~~~~\n')
+                sys.exit()
+
         except IndexError:
             status = 'empty'
             planet = np.nan
@@ -548,6 +577,7 @@ def plot_sims(sim_results, res_str, fig, ax):
     for sim in sim_results:
         x = sim['pimass'] / sim['smass']
         y = sim['pomass'] / sim['smass']
+        print('({:.3e}, {:.3e})'.format(x, y)) # DEBUG
         status = sim['status'][0]
         if status == 'stable':
             ax.plot(x, y, 'k.', ms=3.2, mew=3.2)
