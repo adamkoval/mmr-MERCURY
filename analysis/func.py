@@ -559,15 +559,13 @@ def plot_observed(observed, res_str, fig, ax, boundary, color, label):
     return fig, ax
 
 
-def plot_sims(sim_results, res_str, fig, ax):
+def plot_sims(sim_results, fig, ax):
     """
     Plots simulation results on give figure and axis
     objects.
     In:
         > sim_results - (dictionary) information on results
         of simulation of the resonance under consideration
-        > res_str - (str) species the resonance
-        under consideration, e.g., '53', '5:3', '5-3'
         > fig, ax - (objects) matplotlib.pylot figure
         and axis objects
     Out:
