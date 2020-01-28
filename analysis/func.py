@@ -575,7 +575,6 @@ def plot_sims(sim_results, fig, ax):
     for sim in sim_results:
         x = sim['pimass'] / sim['smass']
         y = sim['pomass'] / sim['smass']
-        print('({:.3e}, {:.3e})'.format(x, y)) # DEBUG
         status = sim['status'][0]
         if status == 'stable':
             ax.plot(x, y, 'k.', ms=3.2, mew=3.2)
