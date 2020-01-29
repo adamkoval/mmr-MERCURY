@@ -577,15 +577,17 @@ def plot_sims(sim_results, fig, ax):
         y = sim['pomass'] / sim['smass']
         status = sim['status'][0]
         if status == 'stable':
-            ax.plot(x, y, 'k.', ms=3.2, mew=3.2)
+            ax.plot(x, y, 'k.', ms=8, mew=.8, fillstyle='none')
         elif status == 'hit star':
-            ax.plot(x, y, marker='*', c=((1, .9, .2)), ms=7, mew=.05)
+            ax.plot(x, y, marker='*', c=((1, .7, .2)), ms=7, mew=.8, fillstyle='none')
         elif status == 'hit planet':
-            ax.plot(x, y, marker='.', c=((1, 0, 0)), ms=1, mew=5)
+            ax.plot(x, y, marker='.', c=((1, 0, 0)), ms=9, mew=.9, fillstyle='none')
         elif status == 'ejected':
-            ax.plot(x, y, marker='^', c=((1, .5, 0)), ms=5, mew=.05)
+            ax.plot(x, y, marker='^', c=((1, .4, .75)), ms=6, mew=.8, fillstyle='none')
         elif status == 'empty':
-            ax.plot(x, y, marker='s', c=((0, 0, 1)), ms=5, mew=.05)
+            ax.plot(x, y, marker='s', c=((0, 0, 1)), ms=5, mew=.9, fillstyle='none')
         else:
             pass
+    fig.subplots_adjust(bottom=.15)
+    ax.text(0.01, -0.15, 'N = {}'.format(len(sim_results)), transform=ax.transAxes)
     return fig, ax
