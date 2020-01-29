@@ -590,4 +590,12 @@ def plot_sims(sim_results, fig, ax):
             pass
     fig.subplots_adjust(bottom=.15)
     ax.text(0.01, -0.15, 'N = {}'.format(len(sim_results)), transform=ax.transAxes)
+
+    def on_pick(event):
+        print(sim_results[event.ind], "clicked")
+    fig.canvas.mpl_connect('pick_event', on_pick)
     return fig, ax
+
+
+#def plot_sims_timeevol(sim_results):
+
