@@ -327,7 +327,7 @@ def MM_sim_results(completed_path, res_str):
     for i in range(len(bigins)):
         sim_results.append(read_biginfo(completed_path, res_str, bigins[i], infoouts[i]))
         if i%100 == 0:
-            print(' run:{}\n')
+            print(' sim: {}'.format(i))
     print(' ~~~~~~~~~~~~~~~~~~~~~~~~\n')
     return sim_results
 
@@ -577,7 +577,9 @@ def plot_sims(sim_results, fig, ax):
         > fig, ax - (objects) matplotlib.pylot figure
         and axis objects.
     """
-    for sim in sim_results:
+    print(' ~~~~~~~~~~~~~~~~~~~~~~~~\n',
+          'func.py/plot_sims():\n')
+    for i, sim in enumerate(sim_results):
         x = sim['pimass'] / sim['smass']
         y = sim['pomass'] / sim['smass']
         status = sim['status'][0]
@@ -594,6 +596,11 @@ def plot_sims(sim_results, fig, ax):
             ax.plot(x, y, marker='s', c=((0, 0, 1)), ms=5, mew=.9, fillstyle='none', picker=_picker)
         else:
             pass
+
+        if i%100 == 0:
+            print(' sim: {}'.format(i))
+    print(' ~~~~~~~~~~~~~~~~~~~~~~~~\n')
+
     fig.subplots_adjust(bottom=.15)
     ax.text(0.01, -0.15, 'N = {}'.format(len(sim_results)), transform=ax.transAxes)
 
