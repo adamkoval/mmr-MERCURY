@@ -605,11 +605,27 @@ def plot_sims(sim_results, fig, ax):
     ax.text(0.01, -0.15, 'N = {}'.format(len(sim_results)), transform=ax.transAxes)
 
 
-def on_pick(event):
-    point = event.artist
-    x, y = point.get_data()
-    print('x, y = {}, {}'.format(x, y))
-
-
 def plot_sims_timeevol(sim_results, fig):
-    fig.canvas.mpl_connect('pick_event', on_pick)
+    def on_pick(event):
+        point = event.artist
+        x, y = point.get_data()
+
+        global coords
+        coords.append((x[0], y[0]))
+        print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n",
+              "func/plot_sims_timeevol():\n")
+        if len(coords) > 1:
+            print("You have selected more than one system, please zoom in and select just one at a time! Plotting system {}.".format(coords[0]))
+            fig.canvas.mpl_disconnect(cid)
+        else:
+            print("Plotting system {}.".format(coords[0]))
+            pass
+        print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
+
+
+    global coords
+    coords = []
+
+    cid = fig.canvas.mpl_connect('pick_event', on_pick)
+
+    return coords
