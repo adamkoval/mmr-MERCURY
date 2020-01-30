@@ -322,8 +322,13 @@ def MM_sim_results(completed_path, res_str):
     sim_results = []
     bigins = listdir_nohidden('{}/{}/input/'.format(completed_path, res_str))
     infoouts = listdir_nohidden('{}/{}/info/'.format(completed_path, res_str))
+    print(' ~~~~~~~~~~~~~~~~~~~~~~~~\n',
+          'func.py/MM_sim_results():\n')
     for i in range(len(bigins)):
         sim_results.append(read_biginfo(completed_path, res_str, bigins[i], infoouts[i]))
+        if i%100 == 0:
+            print(' run:{}\n')
+    print(' ~~~~~~~~~~~~~~~~~~~~~~~~\n')
     return sim_results
 
 
