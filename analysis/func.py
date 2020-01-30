@@ -576,26 +576,28 @@ def plot_sims(sim_results, fig, ax):
         x = sim['pimass'] / sim['smass']
         y = sim['pomass'] / sim['smass']
         status = sim['status'][0]
+        _picker = 3
         if status == 'stable':
-            ax.plot(x, y, 'k.', ms=8, mew=.8, fillstyle='none')
+            ax.plot(x, y, 'k.', ms=8, mew=.8, fillstyle='none', picker=_picker)
         elif status == 'hit star':
-            ax.plot(x, y, marker='*', c=((1, .7, .2)), ms=7, mew=.8, fillstyle='none')
+            ax.plot(x, y, marker='*', c=((1, .7, .2)), ms=7, mew=.8, fillstyle='none', picker=_picker)
         elif status == 'hit planet':
-            ax.plot(x, y, marker='.', c=((1, 0, 0)), ms=9, mew=.9, fillstyle='none')
+            ax.plot(x, y, marker='.', c=((1, 0, 0)), ms=9, mew=.9, fillstyle='none', picker=_picker)
         elif status == 'ejected':
-            ax.plot(x, y, marker='^', c=((1, .4, .75)), ms=6, mew=.8, fillstyle='none')
+            ax.plot(x, y, marker='^', c=((1, .4, .75)), ms=6, mew=.8, fillstyle='none', picker=_picker)
         elif status == 'empty':
-            ax.plot(x, y, marker='s', c=((0, 0, 1)), ms=5, mew=.9, fillstyle='none')
+            ax.plot(x, y, marker='s', c=((0, 0, 1)), ms=5, mew=.9, fillstyle='none', picker=_picker)
         else:
             pass
     fig.subplots_adjust(bottom=.15)
     ax.text(0.01, -0.15, 'N = {}'.format(len(sim_results)), transform=ax.transAxes)
 
-    def on_pick(event):
-        print(sim_results[event.ind], "clicked")
+
+def on_pick(event):
+    point = event.artist
+    x, y = point.get_data()
+    print('x, y = {}, {}'.format(x, y))
+
+
+def plot_sims_timeevol(sim_results, fig):
     fig.canvas.mpl_connect('pick_event', on_pick)
-    return fig, ax
-
-
-#def plot_sims_timeevol(sim_results):
-
