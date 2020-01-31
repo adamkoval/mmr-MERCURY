@@ -300,6 +300,12 @@ def read_biginfo(completed_path, res_str, bigin, infoout):
                     'smass': float(1), # Msol
                     'piper': kepler3(float(lines[7].split()[0])*AU, Msol) / (60*60*24*365), # yrs
                     'poper': kepler3(float(lines[11].split()[0])*AU, Msol) / (60*60*24*365), # yrs
+                    'pia': float(lines[7].split()[0]),
+                    'poa': float(lines[11].split()[0]),
+                    'piDelta': float(lines[6].split()[5][3:]), # AU
+                    'poDelta': float(lines[10].split()[5][3:]), # AU
+                    'pitau': float(lines[6].split()[4][3:]), # yrs
+                    'potau': float(lines[10].split()[4][3:]), # yrs
                     'status': status
                     }
     return curr_sim
@@ -409,6 +415,7 @@ def resvar(planet_i, planet_o, res_str):
     phi2 = p*Lambda_o - q*Lambda_i - (p - q)*omega_i
     t_phi = planet_i['time']
     return phi1, phi2, t_phi
+
 
 # # # # # # # # # # # # # # #
 # STABILITY BOUNDARY
@@ -574,8 +581,7 @@ def plot_sims(sim_results, fig, ax):
         > fig, ax - (objects) matplotlib.pylot figure
         and axis objects
     Out:
-        > fig, ax - (objects) matplotlib.pylot figure
-        and axis objects.
+        > (No output) - fig + ax objects are affected.
     """
     print(' ~~~~~~~~~~~~~~~~~~~~~~~~\n',
           'func.py/plot_sims():\n')
@@ -605,27 +611,150 @@ def plot_sims(sim_results, fig, ax):
     ax.text(0.01, -0.15, 'N = {}'.format(len(sim_results)), transform=ax.transAxes)
 
 
-def plot_sims_timeevol(sim_results, fig):
+def interactive_mu1mu2(res_str, sim_results, fig):
+    """
+    Allows click-interaction with mu1-mu2 figure to allow the inspection of
+    the time-evolution of any selected system.
+    In:
+        > res_str - (str) species the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+        > sim_results - (dictionary) information on results
+        of simulation of the resonance under consideration
+        > fig, ax - (objects) matplotlib.pylot figure
+        and axis objects (mu1-mu2 graph)
+    Out:
+        > (No output) - time-evolution graph is plotted
+        (see plot_timeevol() function).
+    """
     def on_pick(event):
         point = event.artist
         x, y = point.get_data()
-
         global coords
         coords.append((x[0], y[0]))
         print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n",
               "func/plot_sims_timeevol():\n")
         if len(coords) > 1:
-            print("You have selected more than one system, please zoom in and select just one at a time! Plotting system {}.".format(coords[0]))
-            fig.canvas.mpl_disconnect(cid)
+            idx = len(coords) - 1
+            print("You have selected more than one system.\n",
+                    "If you did this by accident, please\n",
+                    "zoom in to select just one at a time.\n",
+                    "Plotting system {}.\n".format(coords[idx]))
+            #fig.canvas.mpl_disconnect(cid)
         else:
             print("Plotting system {}.".format(coords[0]))
-            pass
+            idx = 0
+        plot_timeevol(res_str, sim_results,
+                '{:.3g}'.format(coords[idx][0]), '{:.3g}'.format(coords[idx][1]))
         print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
-
-
     global coords
     coords = []
-
     cid = fig.canvas.mpl_connect('pick_event', on_pick)
 
-    return coords
+
+
+def plot_timeevol(res_str, sim_results, mu1, mu2):
+    """
+    Plot time-evolution graph from simulation data.
+    (NOTE: makes use of get_timeevol_data() function)
+    In:
+        > res_str - (str) species the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+        > sim_results - (dictionary) information on results
+        of simulation of the resonance under consideration
+        > mu1, mu2 - (float) mass ratios of inner and outer
+        planet (resp.), to be passed to get_timeevol_data()
+        fucntion
+    Out:
+        > (No output) time-evolution graph is plotted and
+        displayed.
+    """
+    planet1, planet2, model_planet2 = get_timeevol_data(res_str, sim_results, mu1, mu2)
+
+    fig, ax = plt.subplots(3)
+
+    ax[0].plot(planet1['Time (years)'], planet1['a'], label='planet 1')
+    ax[0].plot(planet2['Time (years)'], planet2['a'], label='planet 2')
+    ax[0].plot(model_planet2['Time (years)'], model_planet2['a'], label='planet 2 (model)')
+    ax[0].set_xticklabels([])
+    ax[0].set_ylabel("a [A. U.]")
+    ax[0].set_xscale('log')
+    ax[0].legend()
+
+    ax[1].plot(planet1['Time (years)'], planet1['e'], label='planet1')
+    ax[1].plot(planet2['Time (years)'], planet2['e'], label='planet2')
+    ax[1].set_xticklabels([])
+    ax[1].set_ylabel("e [no unit]")
+    ax[1].set_xscale('log')
+    ax[1].legend()
+
+    ax[2].set_ylabel("$\phi$")
+    ax[2].set_xscale('log')
+
+    plt.show()
+
+
+def get_timeevol_data(res_str, sim_results, mu1, mu2):
+    """
+    Get simulation data of both planets and the analytically
+    determined path of planet 2.
+    In:
+        > res_str - (str) species the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+        > sim_results - (dictionary) information on results
+        of simulation of the resonance under consideration
+        > mu1, mu2 - (float) mass ratios of inner and outer
+        planet (resp.), to be passed to get_timeevol_data()
+        fucntion
+    Out:
+        > planet1, planet2 - (dictionaries) simulation data
+        of both planets. Columns are: 'Time (years)', 'a',
+        'e', 'i', 'peri', 'node', 'M', 'mass'
+        > model_planet2 - (dictionary) analytical migration
+        data. Columns are: 'Time (years)', 'a'.
+    """
+    def analytical_mig(t, a_fin, Delta, tau):
+        """Analytical migration model by Malhotra, R., ``The
+        origin of Pluto's peculiar orbit", Letters to Nature, 1993.
+        In:
+            > t - (1xN array) time array from planet.aei
+            file
+            > a_fin - (float) final semi-major axis after
+            migration [unit=AU]
+            > Delta - (float) migration distance [unit=AU]
+            > tau - (float) migration timescale [unit=s]
+        Out:
+            > a_t - (1xN array) semi-major axis evolution
+            of planet2 [unit=AU].
+        """
+        a_t = [(a_fin - Delta*np.exp(-_t/tau)) for _t in t]
+        return a_t
+
+    def read_planetaei(sim_idx, planet_idx, res_str):
+        """Read in simulation data from planet.aei data.
+        In:
+            > sim_idx - (int) index of the simulation
+            > planet_idx - (int) index of planet within
+            simulation (i.e., inner or outer)
+            > res_str - see above
+        Out:
+            > data - (MxN array) of data from simulation
+            for the selected planet.
+        """
+        path = "../completed/{}/planets/{}-planet{}.aei".format(res_str, sim_idx, planet_idx)
+        headers = ['Time (years)', 'a', 'e', 'i', 'peri', 'node', 'M', 'mass']
+        data = pd.read_csv(path, delimiter=r'\s+', skiprows=4, names=headers)
+        return data
+
+    system, = [sys for sys in sim_results if sys['pimass']==float(mu1) and sys['pomass']==float(mu2)]
+    sim_idx = re.search('([0-9]+)-big\.in', system['name']).group(1)
+
+    planet1 = read_planetaei(sim_idx, 1, res_str)
+    planet2 = read_planetaei(sim_idx, 2, res_str)
+
+    Delta = system['poDelta']
+    a_fin = system['poa'] + Delta
+    tau = system['potau']
+    t = planet2['Time (years)']
+    model_planet2 = {'Time (years)': t, 'a': analytical_mig(t, a_fin, Delta, tau)}
+
+    return planet1, planet2, model_planet2
