@@ -729,7 +729,7 @@ def plot_sims(sim_results, fig, ax):
         x = sim['pimass'] / sim['smass']
         y = sim['pomass'] / sim['smass']
         status = sim['status'][0]
-        _picker = 3
+        _picker = 4.5
         if status == 'stable':
             ax.plot(x, y, 'k.', ms=8, mew=.8, fillstyle='none', picker=_picker)
         elif status == 'hit star':
