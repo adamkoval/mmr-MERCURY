@@ -493,7 +493,7 @@ def get_timeevol_data(res_str, sim_results, mu1, mu2):
     t = planet2['Time (years)']
     model_planet2 = {'Time (years)': t, 'a': analytical_mig(t, a_fin, Delta, tau)}
 
-    return planet1, planet2, model_planet2
+    return planet1, planet2, model_planet2, sim_idx
 
 
 def plot_timeevol(res_str, sim_results, mu1, mu2):
@@ -512,7 +512,7 @@ def plot_timeevol(res_str, sim_results, mu1, mu2):
         > (No output) time-evolution graph is plotted and
         displayed.
     """
-    planet1, planet2, model_planet2 = get_timeevol_data(res_str, sim_results, mu1, mu2)
+    planet1, planet2, model_planet2, sim_idx = get_timeevol_data(res_str, sim_results, mu1, mu2)
     phi1, phi2, t_phi, deltaphi = get_resvar(res_str, planet1, planet2)
     res_float = float(res_str[0])/float(res_str[1])
     a_i = planet1['a'][0]
@@ -549,6 +549,11 @@ def plot_timeevol(res_str, sim_results, mu1, mu2):
         _ax.tick_params(axis='x', which='both', direction='in')
         _ax.set_xlim(right=planet1['Time (years)'].values[-1])
 
+    ax[0].set_title("Sim no. = {}".format(sim_idx), pad=45)
+    mu1 = sim_results[int(sim_idx)]['pimass']
+    mu2 = sim_results[int(sim_idx)]['pomass']
+    outcome = sim_results[int(sim_idx)]['status'][0]
+    plt.figtext(.5, .9, "$\mu_1={}$, $\mu_2={}$, res$=${}:{}, outcome={}".format(mu1, mu2, res_str[0], res_str[1], outcome), horizontalalignment='center')
     plt.tight_layout()
     plt.show()
 
