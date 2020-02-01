@@ -10,7 +10,7 @@ planets_csv_new = pd.read_csv('planets_new.csv', skiprows=34, header=0, delim_wh
 planets_csv_control = pd.read_csv('planets_control.csv', skiprows=23, header=0, delim_whitespace=False)
 
 
-resonance = '43'
+resonance = '53'
 tol = 15
 observed_old = fn.find_resonances(planets_csv_old, tol)
 observed_new = fn.find_resonances(planets_csv_new, tol)
@@ -24,4 +24,5 @@ fn.plot_observed(observed_new, resonance, fig, ax, boundary, 'b', 'new')
 handles = [Line2D([], [], color='r', label='old'),
            Line2D([], [], color='b', label='new')]
 plt.legend(handles=handles)
+plt.savefig('figures/oldvnew_{}.pdf'.format(resonance), format='pdf')
 plt.show()
