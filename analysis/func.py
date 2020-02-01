@@ -462,22 +462,6 @@ def get_timeevol_data(res_str, sim_results, mu1, mu2):
         > model_planet2 - (dictionary) analytical migration
         data. Columns are: 'Time (years)', 'a'.
     """
-    def analytical_mig(t, a_fin, Delta, tau):
-        """Analytical migration model by Malhotra, R., ``The
-        origin of Pluto's peculiar orbit", Letters to Nature, 1993.
-        In:
-            > t - (1xN array) time array from planet.aei
-            file
-            > a_fin - (float) final semi-major axis after
-            migration [unit=AU]
-            > Delta - (float) migration distance [unit=AU]
-            > tau - (float) migration timescale [unit=s]
-        Out:
-            > a_t - (1xN array) semi-major axis evolution
-            of planet2 [unit=AU].
-        """
-        a_t = [(a_fin - Delta*np.exp(-_t/tau)) for _t in t]
-        return a_t
 
     system, = [sys for sys in sim_results if sys['pimass']==float(mu1) and sys['pomass']==float(mu2)]
     sim_idx = re.search('([0-9]+)-big\.in', system['name']).group(1)
@@ -495,6 +479,24 @@ def get_timeevol_data(res_str, sim_results, mu1, mu2):
     model_planet2 = {'Time (years)': t, 'a': analytical_mig(t, a_fin, Delta, tau)}
 
     return planet1, planet2, model_planet2, sim_idx, outcome
+
+
+def analytical_mig(t, a_fin, Delta, tau):
+    """Analytical migration model by Malhotra, R., ``The
+    origin of Pluto's peculiar orbit", Letters to Nature, 1993.
+    In:
+        > t - (1xN array) time array from planet.aei
+        file
+        > a_fin - (float) final semi-major axis after
+        migration [unit=AU]
+        > Delta - (float) migration distance [unit=AU]
+        > tau - (float) migration timescale [unit=s]
+    Out:
+        > a_t - (1xN array) semi-major axis evolution
+        of planet2 [unit=AU].
+    """
+    a_t = [(a_fin - Delta*np.exp(-_t/tau)) for _t in t]
+    return a_t
 
 
 def plot_timeevol(res_str, sim_results, mu1, mu2):
