@@ -357,18 +357,19 @@ def read_planetaei(aeifile):
     return planet
 
 
-def kepler3(a, M):
+def kepler3_period(a, M_star):
     """
-    Kepler's third law.
+    Kepler's third law for finding orbital period from
+    semi-major axis and star mass.
     In:
         > a - (float or int) semi-major axis
-        > M - (float or int) star mass
+        > M_star - (float or int) star mass
     Out:
         > T - (float) orbital period of planetary
         companion.
     """
     global G
-    T = 2*np.pi*np.sqrt(a**3/(G*M))
+    T = 2*np.pi*np.sqrt(a**3/(G*M_star))
     return T
 
 
