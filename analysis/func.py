@@ -747,6 +747,17 @@ def plot_sims(sim_results, fig, ax):
             print(" sim: {}".format(i))
     print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
 
+    _handles = [Line2D([], [], color='k', marker='.', ms=8, mew=.8,
+                ls='', fillstyle='none', label='Stable'),
+            Line2D([], [], color=((1, .7, .2)), marker='*', ms=7, mew=.8,
+                ls='', fillstyle='none', label='P-* collision'),
+            Line2D([], [], color=((1, 0, 0)), marker='.', ms=9, mew=.9,
+                ls='', fillstyle='none', label='P-P collision'),
+            Line2D([], [], color=((1, .4, .75)), marker='^', ms=6, mew=.8,
+                ls='', fillstyle='none', label='Ejection'),
+            Line2D([], [], color=((0, 0, 1)), marker='s', ms=5, mew=.9,
+                ls='', fillstyle='none', label='No data')]
+    plt.legend(loc=2, handles=_handles, fancybox=True, prop={'size': 6})
     fig.subplots_adjust(bottom=.15)
     ax.text(0.01, -0.15, "N = {}".format(len(sim_results)), transform=ax.transAxes)
 
