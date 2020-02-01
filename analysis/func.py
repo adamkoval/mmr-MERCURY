@@ -300,8 +300,8 @@ def read_biginfo(completed_path, res_str, bigin, infoout):
                     'pimass': float(lines[6].split()[1][2:]), # Mjup
                     'pomass': float(lines[10].split()[1][2:]), # Mjup
                     'smass': float(1), # Msol
-                    'piper': kepler3(float(lines[7].split()[0])*AU, Msol) / (60*60*24*365), # yrs
-                    'poper': kepler3(float(lines[11].split()[0])*AU, Msol) / (60*60*24*365), # yrs
+                    'piper': kepler3_period(float(lines[7].split()[0])*AU, Msol) / (60*60*24*365), # yrs
+                    'poper': kepler3_period(float(lines[11].split()[0])*AU, Msol) / (60*60*24*365), # yrs
                     'pia': float(lines[7].split()[0]),
                     'poa': float(lines[11].split()[0]),
                     'piDelta': float(lines[6].split()[5][3:]), # AU
@@ -373,6 +373,23 @@ def kepler3_period(a, M_star):
     return T
 
 
+def kepler3_resdisp(res_float, a_i):
+    """
+    Kepler's third law for finding semi-major
+    axis of outer planet from nominal resonance
+    and inner semi-major axis.
+    In:
+        > res_float - (float) fractional value of resonance under
+        consideration, i.e., 2/1=2.0, 5/3=1.66667, and so on
+        > a_i - (float) semi-major axis of inner planet [units=AU]
+    Out:
+        > a_o - (float) semi-major axis of outer planet [units=AU].
+    """
+    global G
+    a_o = res_float**(2/3) * a_i
+    return a_o
+
+
 def get_resvar(res_str, planet_i, planet_o):
     """
     In:
@@ -412,16 +429,18 @@ def get_resvar(res_str, planet_i, planet_o):
     planet_i, planet_o = truncate_longer(planet_i, planet_o)
     print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
 
-    Lambda_i = planet_i['node'] + planet_i['peri'] # Longidute of periapsis
-    Lambda_o = planet_o['node'] + planet_o['peri']
-    omega_i = Lambda_i + planet_i['M'] # Mean longitude
-    omega_o = Lambda_o + planet_o['M']
+    omega_i = planet_i['node'] + planet_i['peri'] # Longitude of periapsis
+    omega_o = planet_o['node'] + planet_o['peri']
+    Lambda_i = omega_i + planet_i['M'] # Mean longitude
+    Lambda_o = omega_o + planet_o['M']
+
     p = int(res_str[0])
     q = int(res_str[1])
     phi1 = p*Lambda_o - q*Lambda_i - (p - q)*omega_o
     phi2 = p*Lambda_o - q*Lambda_i - (p - q)*omega_i
+    deltaphi = phi1 - phi2
     t_phi = planet_i['Time (years)']
-    return phi1, phi2, t_phi
+    return phi1, phi2, t_phi, deltaphi
 
 
 def get_timeevol_data(res_str, sim_results, mu1, mu2):
@@ -494,7 +513,10 @@ def plot_timeevol(res_str, sim_results, mu1, mu2):
         displayed.
     """
     planet1, planet2, model_planet2 = get_timeevol_data(res_str, sim_results, mu1, mu2)
-    phi1, phi2, t_phi = get_resvar(res_str, planet1, planet2)
+    phi1, phi2, t_phi, deltaphi = get_resvar(res_str, planet1, planet2)
+    res_float = float(res_str[0])/float(res_str[1])
+    a_i = planet1['a'][0]
+    a_o = kepler3_resdisp(res_float, a_i)
 
     fig, ax = plt.subplots(3)
     linewidth = .6
@@ -503,26 +525,29 @@ def plot_timeevol(res_str, sim_results, mu1, mu2):
     ax[0].plot(planet1['Time (years)'], planet1['a'], label='planet 1', lw=linewidth, alpha=_alpha)
     ax[0].plot(planet2['Time (years)'], planet2['a'], label='planet 2', lw=linewidth, alpha=_alpha)
     ax[0].plot(model_planet2['Time (years)'], model_planet2['a'], label='planet 2 (model)')
+    ax[0].axhspan(a_i, a_o, alpha=.14, color='k', label='{}:{} resonance'.format(*res_str))
     ax[0].set_ylabel("a [A. U.]")
-    ax[0].legend(bbox_to_anchor=(0, .985, 1, 0), loc=3, ncol=3, mode='expand',
+    ax[0].legend(bbox_to_anchor=(0, .985, 1, 0), loc=3, ncol=4, mode='expand',
             fancybox=True, prop={'size': 9})
 
     ax[1].plot(planet1['Time (years)'], planet1['e'], label='planet1', lw=linewidth, alpha=_alpha)
     ax[1].plot(planet2['Time (years)'], planet2['e'], label='planet2', lw=linewidth, alpha=_alpha)
     ax[1].set_ylabel("e [no unit]")
 
-    ax[2].plot(t_phi, phi1, label='phi1', lw=linewidth, alpha=_alpha)
-    ax[2].plot(t_phi, phi2, label='phi2', lw=linewidth, alpha=_alpha)
-    ax[2].set_xlabel("Time (years)")
-    ax[2].set_ylabel("$\phi$")
-    ax[2].set_xscale('log')
-    #ax[2].set_xticklabels(ax[0].get_xticklabels())
-    ax[2].tick_params(axis='x', which='both', direction='in')
+    #ax[2].plot(t_phi, phi1, label='phi1', lw=linewidth, alpha=_alpha)
+    #ax[2].plot(t_phi, phi2, label='phi2', lw=linewidth, alpha=_alpha)
+    ax[2].plot(t_phi, deltaphi, label='Resonance variable difference', c='r', lw=linewidth, alpha=_alpha)
+    ax[2].axhline(0, color='k', ls='--', lw='.8', alpha=.6)
+    ax[2].set_xlabel("Time [years]")
+    ax[2].set_ylabel("$\Delta\phi$ [deg]")
+    ax[2].legend()
 
-    for _ax in ax[:2]:
+    for _ax in ax:
         _ax.set_xscale('log')
-        _ax.set_xticklabels([])
+        if not _ax==ax[2]:
+            _ax.set_xticklabels([])
         _ax.tick_params(axis='x', which='both', direction='in')
+        _ax.set_xlim(right=planet1['Time (years)'].values[-1])
 
     plt.tight_layout()
     plt.show()
