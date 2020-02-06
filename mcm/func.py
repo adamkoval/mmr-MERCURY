@@ -19,9 +19,13 @@ def read_envfile(envfile):
     """
     with open(envfile, 'r') as f:
         lines = [line for line in f.readlines() if line[0] is not '#']
-        pyenv = lines[0].split()[2]
-        bashenv = lines[1].split()[2]
-    return pyenv, bashenv
+        names = []
+        for line in lines:
+            name = line.split()[0]
+            value = line.split()[2]
+            globals()[name] = value
+            names.append(name)
+        return [globals()[name] for name in names]
 
 
 def disp(res_float, fraction, direction=''):
