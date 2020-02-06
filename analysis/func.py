@@ -22,6 +22,27 @@ AU = 1.496e11 #m
 # # # # # # # # # # # # # # #
 # GENERAL
 # # # # # # # # # # # # # # #
+def read_pathfile(pathfile):
+    """
+    Reads in pathfile.txt to assign paths for
+    the script to use.
+    In:
+        > pathfile - (str) path to pathfile.txt
+    Out:
+        > completed - (str) path to completed
+        directory.
+    """
+    with open(pathfile, 'r') as f:
+        lines = [line for line in f.readlines() if line[0] is not '#']
+        names = []
+        for line in lines:
+            name = line.split()[0]
+            value = line.split()[2]
+            globals()[name] = value
+            names.append(name)
+        return [globals()[name] for name in names]
+
+
 def mu_error(pmass, pmasserrs, smass, smasserrs):
     """
     Function to return planet/star mass ratio from
