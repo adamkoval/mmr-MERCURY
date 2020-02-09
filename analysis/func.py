@@ -465,11 +465,13 @@ def get_resvar(res_str, planet_i, planet_o):
     return phi1, phi2, t_phi, deltaphi, lpdiff
 
 
-def get_timeevol_data(res_str, sim_results, mu1, mu2):
+def get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2):
     """
     Get simulation data of both planets and the analytically
     determined path of planet 2.
     In:
+        > completed_path - (str) path to directory
+        containing completed simulations
         > res_str - (str) species the resonance
         under consideration, e.g., '53', '5:3', '5-3'
         > sim_results - (dictionary) information on results
@@ -484,11 +486,12 @@ def get_timeevol_data(res_str, sim_results, mu1, mu2):
         > model_planet2 - (dictionary) analytical migration
         data. Columns are: 'Time (years)', 'a'.
     """
-
-    system, = [sys for sys in sim_results if sys['pimass']==float(mu1) and sys['pomass']==float(mu2)]
+    clicked_mu1 = '{:.3e}'.format(float(mu1))
+    clicked_mu2 = '{:.3e}'.format(float(mu2))
+    system, = [sys for sys in sim_results if '{:.3e}'.format(sys['pimass'])==clicked_mu1 and '{:.3e}'.format(sys['pomass'])==clicked_mu2]
     sim_idx = re.search('([0-9]+)-big\.in', system['name']).group(1)
-    aeifile1 = "../completed/{}/planets/{}-planet{}.aei".format(res_str, sim_idx, 1)
-    aeifile2 = "../completed/{}/planets/{}-planet{}.aei".format(res_str, sim_idx, 2)
+    aeifile1 = "{}/{}/planets/{}-planet{}.aei".format(completed_path, res_str, sim_idx, 1)
+    aeifile2 = "{}/{}/planets/{}-planet{}.aei".format(completed_path, res_str, sim_idx, 2)
 
     planet1 = read_planetaei(aeifile1)
     planet2 = read_planetaei(aeifile2)
@@ -521,11 +524,13 @@ def analytical_mig(t, a_fin, Delta, tau):
     return a_t
 
 
-def plot_timeevol(res_str, sim_results, mu1, mu2):
+def plot_timeevol(completed_path, res_str, sim_results, mu1, mu2):
     """
     Plot time-evolution graph from simulation data.
     (NOTE: makes use of get_timeevol_data() function)
     In:
+        > completed_path - (str) path to directory
+        containing completed simulations
         > res_str - (str) species the resonance
         under consideration, e.g., '53', '5:3', '5-3'
         > sim_results - (dictionary) information on results
@@ -537,7 +542,7 @@ def plot_timeevol(res_str, sim_results, mu1, mu2):
         > (No output) time-evolution graph is plotted and
         displayed.
     """
-    planet1, planet2, model_planet2, sim_idx, outcome = get_timeevol_data(res_str, sim_results, mu1, mu2)
+    planet1, planet2, model_planet2, sim_idx, outcome = get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2)
     phi1, phi2, t_phi, deltaphi, lpdiff = get_resvar(res_str, planet1, planet2)
     res_float = float(res_str[0])/float(res_str[1])
     a_i = planet1['a'][0]
@@ -787,11 +792,13 @@ def plot_sims(sim_results, fig, ax):
     ax.text(0.01, -0.15, "N = {}".format(len(sim_results)), transform=ax.transAxes)
 
 
-def interactive_mu1mu2(res_str, sim_results, fig):
+def interactive_mu1mu2(completed_path, res_str, sim_results, fig):
     """
     Allows click-interaction with mu1-mu2 figure to allow the inspection of
     the time-evolution of any selected system.
     In:
+        > completed_path - (str) path to directory
+        containing completed simulations
         > res_str - (str) species the resonance
         under consideration, e.g., '53', '5:3', '5-3'
         > sim_results - (dictionary) information on results
@@ -819,8 +826,9 @@ def interactive_mu1mu2(res_str, sim_results, fig):
         else:
             print("Plotting system {}.".format(coords[0]))
             idx = 0
-        plot_timeevol(res_str, sim_results,
-                '{:.3g}'.format(coords[idx][0]), '{:.3g}'.format(coords[idx][1]))
+        mu1 = coords[idx][0]
+        mu2 = coords[idx][1]
+        plot_timeevol(completed_path, res_str, sim_results, mu1, mu2)
         print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
     global coords
     coords = []
