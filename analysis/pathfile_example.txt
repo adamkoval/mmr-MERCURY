@@ -1,2 +1,2 @@
 # Please adjust the following entries according to your specific setup
-completed = ../completed/
+completed_path = ../completed/
