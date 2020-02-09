@@ -461,7 +461,8 @@ def get_resvar(res_str, planet_i, planet_o):
     phi2 = p*Lambda_o - q*Lambda_i - (p - q)*omega_i
     deltaphi = phi1 - phi2
     t_phi = planet_i['Time (years)']
-    return phi1, phi2, t_phi, deltaphi
+    lpdiff = omega_o - omega_i
+    return phi1, phi2, t_phi, deltaphi, lpdiff
 
 
 def get_timeevol_data(res_str, sim_results, mu1, mu2):
@@ -537,7 +538,7 @@ def plot_timeevol(res_str, sim_results, mu1, mu2):
         displayed.
     """
     planet1, planet2, model_planet2, sim_idx, outcome = get_timeevol_data(res_str, sim_results, mu1, mu2)
-    phi1, phi2, t_phi, deltaphi = get_resvar(res_str, planet1, planet2)
+    phi1, phi2, t_phi, deltaphi, lpdiff = get_resvar(res_str, planet1, planet2)
     res_float = float(res_str[0])/float(res_str[1])
     a_i = planet1['a'][0]
     a_o = kepler3_resdisp(res_float, a_i)
@@ -561,7 +562,8 @@ def plot_timeevol(res_str, sim_results, mu1, mu2):
 
     #ax[2].plot(t_phi, phi1, label='phi1', lw=linewidth, alpha=_alpha)
     #ax[2].plot(t_phi, phi2, label='phi2', lw=linewidth, alpha=_alpha)
-    ax[2].plot(t_phi, deltaphi, label='Resonance variable difference', c='r', lw=linewidth, alpha=_alpha)
+    #ax[2].plot(t_phi, deltaphi, label='Resonance variable difference', c='r', lw=linewidth, alpha=_alpha)
+    ax[2].plot(t_phi, lpdiff, '.', label='$\Delta\omega$', ms=.5, alpha=_alpha)
     ax[2].axhline(0, color='k', ls='--', lw='.8', alpha=.6)
     ax[2].set_xlabel("Time [years]")
     ax[2].set_ylabel("$\Delta\phi$ [deg]")
