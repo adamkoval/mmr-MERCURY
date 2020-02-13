@@ -23,3 +23,4 @@ mcm/resonance_graph.py
 mcm/resonance_graph.pdf
 #test_*.py
 analysis/figures/
+study/
