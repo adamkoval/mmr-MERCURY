@@ -82,6 +82,17 @@ def listdir_nohidden(path):
     return dirlist
 
 
+def snip_path(path):
+    """Adapts path string to format used by all functions.
+    In:
+        > path - (str) path to directory
+    Out:
+        > path - (str) amended path.
+    """
+    if path[-1] == "/":
+        path = path[:-1]
+    return path
+
 # # # # # # # # # # # # # # #
 # RESONANCE FINDING FUNCTIONS
 # # # # # # # # # # # # # # #
@@ -312,6 +323,7 @@ def read_biginfo(completed_path, res_str, bigin, infoout):
         current iteration of the simulation.
     """
     global AU, Msol
+    completed_path = snip_path(completed_path)
     big = '{}/{}/input/{}'.format(completed_path, res_str, bigin)
     info = '{}/{}/info/{}'.format(completed_path, res_str, infoout)
     status = get_status(info)
@@ -349,6 +361,7 @@ def MM_sim_results(completed_path, res_str):
         consideration.
     """
     sim_results = []
+    completed_path = snip_path(completed_path)
     bigins = listdir_nohidden('{}/{}/input/'.format(completed_path, res_str))
     infoouts = listdir_nohidden('{}/{}/info/'.format(completed_path, res_str))
     print(' ~~~~~~~~~~~~~~~~~~~~~~~~\n',
@@ -486,6 +499,7 @@ def get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2):
         > model_planet2 - (dictionary) analytical migration
         data. Columns are: 'Time (years)', 'a'.
     """
+    completed_path = snip_path(completed_path)
     clicked_mu1 = '{:.3e}'.format(float(mu1))
     clicked_mu2 = '{:.3e}'.format(float(mu2))
     system, = [sys for sys in sim_results if '{:.3e}'.format(sys['pimass'])==clicked_mu1 and '{:.3e}'.format(sys['pomass'])==clicked_mu2]
@@ -542,6 +556,7 @@ def plot_timeevol(completed_path, res_str, sim_results, mu1, mu2):
         > (No output) time-evolution graph is plotted and
         displayed.
     """
+    completed_path = snip_path(completed_path)
     planet1, planet2, model_planet2, sim_idx, outcome = get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2)
     phi1, phi2, t_phi, deltaphi, lpdiff = get_resvar(res_str, planet1, planet2)
     res_float = float(res_str[0])/float(res_str[1])
@@ -830,6 +845,8 @@ def interactive_mu1mu2(completed_path, res_str, sim_results, fig):
         mu2 = coords[idx][1]
         plot_timeevol(completed_path, res_str, sim_results, mu1, mu2)
         print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
+
+    completed_path = snip_path(completed_path)
     global coords
     coords = []
     cid = fig.canvas.mpl_connect('pick_event', on_pick)
