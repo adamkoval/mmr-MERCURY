@@ -1,13 +1,15 @@
 import tkinter as tk
 
-
+# #                     # #
+#   General use classes   #
+# #                     # #
 class GenericPage(tk.Frame):
     def __init__(self, parent, controller, page_name):
         all_buttons = {"Home": 'HomePage',
                 "Setup": 'SetupPage',
                 "Simulation": 'SimPage',
                 "Analysis": 'AnalysisPage'}
-        buttons = {button: all_buttons[button] for button in all_buttons if button != page_name}
+        buttons = {key: all_buttons[key] for key in all_buttons if key != page_name}
         tk.Frame.__init__(self, parent)
         label = tk.Label(parent, text=page_name)
         label.pack()
@@ -32,8 +34,37 @@ class NavBar(tk.Frame):
         self.pack()
 
 
+class ParamEditor(tk.Toplevel):
+    def __init__(self, parent, file):
+        tk.Toplevel.__init__(self, parent)
+        text_window = TextWindow(self, file)
+        save_button = tk.Button(self, text="Save changes",
+                command=lambda: text_window.save_file())
+        save_button.pack()
 
 
+class TextWindow(tk.Frame):
+    def __init__(self, parent, file):
+        tk.Frame.__init__(self, parent)
+        self.file = file
+        self.parent = parent
+
+        text = open(self.file, 'r').read()
+        self.textbox = tk.Text(self.parent)
+        self.textbox.pack()
+        self.textbox.insert(1.0, text)
+
+    def save_file(self):
+        text = self.textbox.get(1.0, tk.END)
+        f = open(self.file, 'w')
+        f.write(text)
+        f.close()
+        self.parent.destroy()
+
+
+# #       # #
+#   Pages   #
+# #       # #
 class MainApp(tk.Tk):
     def __init__(self):
         tk.Tk.__init__(self)
@@ -67,51 +98,10 @@ class SetupPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         GenericPage(self, controller, "Setup")
-
         paramin = "text.txt"
         paramin_button = tk.Button(self, text="Edit param.in",
                 command=lambda: Popup(self, paramin))
         paramin_button.pack()
-
-
-#class TextWindow2(tk.Toplevel):
-#    def __init__(self, parent, file):
-#        tk.Toplevel.__init__(self, parent)
-#        text_window = TextWindow(self, file)
-#        save_button = tk.Button(self, text="Save changes",
-#                command=lambda: text_window.save_file())
-#        save_button.pack()
-#
-#    def TextBox(self, parent, file):
-#        textbox
-
-
-class Popup(tk.Toplevel):
-    def __init__(self, parent, file):
-        tk.Toplevel.__init__(self, parent)
-        text_window = TextWindow(self, file)
-        save_button = tk.Button(self, text="Save changes",
-                command=lambda: text_window.save_file())
-        save_button.pack()
-
-
-class TextWindow(tk.Frame):
-    def __init__(self, parent, file):
-        tk.Frame.__init__(self, parent)
-        self.file = file
-        self.parent = parent
-
-        text = open(self.file, 'r').read()
-        self.textbox = tk.Text(self.parent)
-        self.textbox.pack()
-        self.textbox.insert(1.0, text)
-
-    def save_file(self):
-        text = self.textbox.get(1.0, tk.END)
-        f = open(self.file, 'w')
-        f.write(text)
-        f.close()
-        self.parent.destroy()
 
 
 class AnalysisPage(tk.Frame):
