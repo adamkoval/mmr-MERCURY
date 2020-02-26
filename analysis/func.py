@@ -583,18 +583,19 @@ def plot_timeevol(completed_path, res_str, sim_results, mu1, mu2):
     #ax[2].plot(t_phi, phi1, label='phi1', lw=linewidth, alpha=_alpha)
     #ax[2].plot(t_phi, phi2, label='phi2', lw=linewidth, alpha=_alpha)
     #ax[2].plot(t_phi, deltaphi, label='Resonance variable difference', c='r', lw=linewidth, alpha=_alpha)
-    ax[2].plot(t_phi, lpdiff, '.', label='$\Delta\omega$', ms=.5, alpha=_alpha)
+    ax[2].plot(t_phi, lpdiff, '.', ms=.5, alpha=_alpha)
     ax[2].axhline(0, color='k', ls='--', lw='.8', alpha=.6)
     ax[2].set_xlabel("Time [years]")
-    ax[2].set_ylabel("$\Delta\phi$ [deg]")
-    ax[2].legend()
+    ax[2].set_ylabel("$\\Delta\\varpi$ [deg]")
 
     for _ax in ax:
-        _ax.set_xscale('log')
+        #_ax.set_xscale('log')
         if not _ax==ax[2]:
-            _ax.set_xticklabels([])
+            _ax.tick_params(labelbottom=False)
         _ax.tick_params(axis='x', which='both', direction='in')
-        _ax.set_xlim(right=planet1['Time (years)'].values[-1])
+        #_ax.set_xlim(right=planet1['Time (years)'].values[-1])
+        _ax.set_xlim(right=1e7)
+
 
     ax[0].set_title("Sim no. = {}".format(sim_idx), pad=45)
     plt.figtext(.5, .9, "$\mu_1={}$, $\mu_2={}$, res$=${}:{}, outcome={}".format(mu1, mu2, res_str[0], res_str[1], outcome), horizontalalignment='center')
@@ -665,7 +666,7 @@ def stability_boundary(res_str):
 # # # # # # # # # # # # # # #
 # FIGURE
 # # # # # # # # # # # # # # #
-def stability_fig_setup(res_str):
+def stability_fig_setup(res_str, results_path):
     """
     Set up main figure displaying mu1-mu2.
     In:
@@ -684,7 +685,7 @@ def stability_fig_setup(res_str):
     ax.set_xlabel('$\mu_1\ [M_1/M_\odot]$')
     ax.set_ylabel('$\mu_2\ [M_2/M_\odot]$')
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 12))
-    ax.set_title('{}:{}'.format(*res_str))
+    ax.set_title('{}:{} ({})'.format(*res_str, results_path))
     boundary = plot_boundary(res_str, fig, ax)
     return fig, ax, boundary
 
