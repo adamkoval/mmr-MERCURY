@@ -10,8 +10,9 @@ import matplotlib.pyplot as plt
 import re
 import os
 from scipy import optimize
+from scipy.signal import periodogram
 from matplotlib.lines import Line2D
-
+from matplotlib.cm import (get_cmap, ScalarMappable)
 
 Msol = 1.9886e30 #kg
 Mjup = 1.89813e27 #kg
@@ -502,6 +503,7 @@ def get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2):
     completed_path = snip_path(completed_path)
     clicked_mu1 = '{:.3e}'.format(float(mu1))
     clicked_mu2 = '{:.3e}'.format(float(mu2))
+
     system, = [sys for sys in sim_results if '{:.3e}'.format(sys['pimass'])==clicked_mu1 and '{:.3e}'.format(sys['pomass'])==clicked_mu2]
     sim_idx = re.search('([0-9]+)-big\.in', system['name']).group(1)
     aeifile1 = "{}/{}/planets/{}-planet{}.aei".format(completed_path, res_str, sim_idx, 1)
@@ -513,11 +515,12 @@ def get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2):
     Delta = system['poDelta']
     a_fin = system['poa'] + Delta
     tau = system['potau']
-    outcome = system['status'][0]
+    outcome, planet, final_age = system['status']
     t = planet2['Time (years)']
+
     model_planet2 = {'Time (years)': t, 'a': analytical_mig(t, a_fin, Delta, tau)}
 
-    return planet1, planet2, model_planet2, sim_idx, outcome
+    return planet1, planet2, model_planet2, sim_idx, tau, outcome, final_age, planet
 
 
 def analytical_mig(t, a_fin, Delta, tau):
@@ -557,7 +560,7 @@ def plot_timeevol(completed_path, res_str, sim_results, mu1, mu2):
         displayed.
     """
     completed_path = snip_path(completed_path)
-    planet1, planet2, model_planet2, sim_idx, outcome = get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2)
+    planet1, planet2, model_planet2, sim_idx, tau, outcome, final_age, planet = get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2)
     phi1, phi2, t_phi, deltaphi, lpdiff = get_resvar(res_str, planet1, planet2)
     res_float = float(res_str[0])/float(res_str[1])
     a_i = planet1['a'][0]
@@ -598,9 +601,64 @@ def plot_timeevol(completed_path, res_str, sim_results, mu1, mu2):
 
 
     ax[0].set_title("Sim no. = {}".format(sim_idx), pad=45)
-    plt.figtext(.5, .9, "$\mu_1={}$, $\mu_2={}$, res$=${}:{}, outcome={}".format(mu1, mu2, res_str[0], res_str[1], outcome), horizontalalignment='center')
+    plt.figtext(.5, .9, "$\mu_1={}$, $\mu_2={}$, res$=${}:{}, outcome={}, planet={}, tau={:.2e} (years)".format(mu1, mu2, res_str[0], res_str[1], outcome, planet, tau), horizontalalignment='center')
     plt.tight_layout()
     plt.show()
+
+
+def plot_periods(completed_path, res_str, sim_results, mu1, mu2):
+    """
+    Plot period analysis graph from simulation data.
+    (NOTE: makes use of get_timeevol_data() function)
+    In:
+        > completed_path - (str) path to directory
+        containing completed simulations
+        > res_str - (str) species the resonance
+        under consideration, e.g., '53', '5:3', '5-3'
+        > sim_results - (dictionary) information on results
+        of simulation of the resonance under consideration
+        > mu1, mu2 - (float) mass ratios of inner and outer
+        planet (resp.), to be passed to get_timeevol_data()
+        fucntion
+    Out:
+        > (No output) time-evolution graph is plotted and
+        displayed.
+    """
+    completed_path = snip_path(completed_path)
+    planet1, planet2, model_planet2, sim_idx, tau, outcome, final_age, planet = get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2)
+    phi1, phi2, t_phi, deltaphi, lpdiff = get_resvar(res_str, planet1, planet2)
+
+    fig, ax = plt.subplots(4)
+    linewidth = .6
+    _alpha = .76
+
+    # For period analysis
+    fs = 1/(1000*365*24*60*60)
+    t = planet1['Time (years)'][1000:]
+    a_p1 = planet1['a'][1000:]
+    a_p2 = planet2['a'][1000:]
+    e_p1 = planet1['e'][1000:]
+    e_p2 = planet2['e'][1000:]
+    lpd = lpdiff[1000:]
+
+    a_p1_f, a_p1_Pxx = periodogram(a_p1, fs)
+    a_p2_f, a_p2_Pxx = periodogram(a_p2, fs)
+    ax[0].plot(a_p1_f, a_p1_Pxx, label="p1 a frequencies")
+    ax[1].plot(a_p2_f, a_p2_Pxx, label="p2 a frequencies")
+
+    e_p1_f, e_p1_Pxx = periodogram(e_p1, fs)
+    e_p2_f, e_p2_Pxx = periodogram(e_p2, fs)
+    ax[2].plot(e_p1_f, e_p1_Pxx, label="p1 e frequencies")
+    ax[3].plot(e_p2_f, e_p2_Pxx, label="p2 e frequencies")
+
+
+    for _ax in ax:
+        if not _ax==ax[3]:
+            _ax.tick_params(labelbottom=False)
+        _ax.tick_params(axis='x', which='both', direction='in')
+        _ax.legend()
+
+    plt.tight_layout()
 
 
 # # # # # # # # # # # # # # #
@@ -685,7 +743,8 @@ def stability_fig_setup(res_str, results_path):
     ax.set_xlabel('$\mu_1\ [M_1/M_\odot]$')
     ax.set_ylabel('$\mu_2\ [M_2/M_\odot]$')
     plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 12))
-    ax.set_title('{}:{} ({})'.format(*res_str, results_path))
+    ax.set_title('{}:{} ({})'.format(*res_str, results_path)) # DEBUG
+    #ax.set_title("{}:{}".format(*res_str))
     boundary = plot_boundary(res_str, fig, ax)
     return fig, ax, boundary
 
@@ -746,12 +805,13 @@ def plot_observed(observed, res_str, fig, ax, boundary, color, label):
         errs_i = [[errs_i[0]], [errs_i[1]]]
         errs_o = [[errs_o[0]], [errs_o[1]]]
         ax.errorbar(mu_i, mu_o, xerr=errs_i, yerr=errs_o,
-                ecolor=color, elinewidth=.5, capsize=2, fmt='.', color=color, label=label)
+                ecolor=color, elinewidth=.5, capsize=2, fmt='.', ms=10, color=color, label=label)
         first_cond = - (mumax - mumin)/mumin*mu_i + mumax
         second_cond = - mumin/(mumax - mumin)*mu_i + mumax*mumin/(mumax - mumin)
         try:
             if mu_o > first_cond and mu_o > second_cond:
-                ax.annotate(name, (mu_i, mu_o))
+                #ax.text(mu_i, mu_o, name, fontsize=10, bbox=dict(boxstyle="round,pad=0.1", fc=color, ec=color, lw=1, alpha=.3), color='k', weight='bold') # DEBUG
+                ax.annotate(name, (mu_i, mu_o), fontsize=12, color='k', weight='bold')
         except:
             pass
     return fig, ax
@@ -759,7 +819,7 @@ def plot_observed(observed, res_str, fig, ax, boundary, color, label):
 
 def plot_sims(sim_results, fig, ax):
     """
-    Plots simulation results on give figure and axis
+    Plots simulation results on given figure and axis
     objects.
     In:
         > sim_results - (dictionary) information on results
@@ -774,17 +834,17 @@ def plot_sims(sim_results, fig, ax):
     for i, sim in enumerate(sim_results):
         x = sim['pimass'] / sim['smass']
         y = sim['pomass'] / sim['smass']
-        status = sim['status'][0]
+        outcome, planet, final_age = sim['status']
         _picker = 4.5
-        if status == 'stable':
+        if outcome == 'stable':
             ax.plot(x, y, 'k.', ms=8, mew=.8, fillstyle='none', picker=_picker)
-        elif status == 'hit star':
+        elif outcome == 'hit star':
             ax.plot(x, y, marker='*', c=((1, .7, .2)), ms=7, mew=.8, fillstyle='none', picker=_picker)
-        elif status == 'hit planet':
+        elif outcome == 'hit planet':
             ax.plot(x, y, marker='.', c=((1, 0, 0)), ms=9, mew=.9, fillstyle='none', picker=_picker)
-        elif status == 'ejected':
+        elif outcome == 'ejected':
             ax.plot(x, y, marker='^', c=((1, .4, .75)), ms=6, mew=.8, fillstyle='none', picker=_picker)
-        elif status == 'empty':
+        elif outcome == 'empty':
             ax.plot(x, y, marker='s', c=((0, 0, 1)), ms=5, mew=.9, fillstyle='none', picker=_picker)
         else:
             pass
@@ -802,10 +862,55 @@ def plot_sims(sim_results, fig, ax):
             Line2D([], [], color=((1, .4, .75)), marker='^', ms=6, mew=.8,
                 ls='', fillstyle='none', label='Ejection'),
             Line2D([], [], color=((0, 0, 1)), marker='s', ms=5, mew=.9,
-                ls='', fillstyle='none', label='No data')]
+                ls='', fillstyle='none', label='No data'),
+            Line2D([], [], color='g', marker='.', ms=8,
+                ls='', label='Observed')]
     plt.legend(loc=2, handles=_handles, fancybox=True, prop={'size': 6})
     fig.subplots_adjust(bottom=.15)
     ax.text(0.01, -0.15, "N = {}".format(len(sim_results)), transform=ax.transAxes)
+    tau = sim['potau']
+    ax.text(0.01, -0.2, "$\\tau$ = {:.1e} yrs".format(tau), transform=ax.transAxes)
+
+
+def plot_sims_age(sim_results, fig, ax):
+    """
+    Plots simulation results on given figure and axis
+    objects.
+    In:
+        > sim_results - (dictionary) information on results
+        of simulation of the resonance under consideration
+        > fig, ax - (objects) matplotlib.pylot figure
+        and axis objects
+    Out:
+        > (No output) - fig + ax objects are affected.
+    """
+    print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n",
+          "func.py/plot_sims():\n")
+
+    stable_age = 10006850
+    cmap = get_cmap('brg')
+    _picker = 4.5
+
+    for i, sim in enumerate(sim_results):
+        x = sim['pimass'] / sim['smass']
+        y = sim['pomass'] / sim['smass']
+        outcome, planet, final_age = sim['status']
+        fractional_age = final_age / stable_age
+
+        ax.plot(x, y, marker='.', c=cmap(fractional_age)[:3], ms=8, mew=.8, fillstyle='none', picker=_picker)
+
+        if i%100 == 0:
+            print(" sim: {}".format(i))
+    print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
+
+
+    cbar = plt.colorbar(ScalarMappable(cmap=cmap), ax=ax)
+    cbar.set_ticks([0, .2, .4, .6, .8, 1])
+    cbar.set_ticklabels(['{:.1e}'.format(val) for val in np.dot([0, .2, .4, .6, .8, 1], stable_age)])
+    fig.subplots_adjust(bottom=.15)
+    ax.text(0.01, -0.15, "N = {}".format(len(sim_results)), transform=ax.transAxes)
+    tau = sim['potau']
+    ax.text(0.01, -0.2, "$\\tau$ = {:.1e} yrs".format(tau), transform=ax.transAxes)
 
 
 def interactive_mu1mu2(completed_path, res_str, sim_results, fig):
@@ -845,6 +950,7 @@ def interactive_mu1mu2(completed_path, res_str, sim_results, fig):
         mu1 = coords[idx][0]
         mu2 = coords[idx][1]
         plot_timeevol(completed_path, res_str, sim_results, mu1, mu2)
+        #plot_periods(completed_path, res_str, sim_results, mu1, mu2) # DEBUG
         print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
 
     completed_path = snip_path(completed_path)
