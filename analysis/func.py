@@ -94,6 +94,25 @@ def snip_path(path):
         path = path[:-1]
     return path
 
+
+def read_initconds(completed_path, var_str):
+    """
+    Picks out variable to read from initial conditions file supplied
+    in each results directory.
+    In:
+        > completed_path - (str) path to directory
+        containing completed simulations
+        > var_str - (str) string of desired variable,
+        as written in init_conds.txt file
+    Out:
+        > var - (str) variable from init_conds.txt file.
+    """
+    with open("{}/init_conds.txt".format(completed_path), 'r') as f:
+        lines = f.readlines()
+    var, = [line.split()[2] for line in lines if line.startswith(var_str)]
+    return var
+
+
 # # # # # # # # # # # # # # #
 # RESONANCE FINDING FUNCTIONS
 # # # # # # # # # # # # # # #
@@ -307,14 +326,12 @@ def get_status(info_file):
     return status, planet, time
 
 
-def read_biginfo(completed_path, res_str, bigin, infoout):
+def read_biginfo(completed_path, bigin, infoout):
     """
     Reads big.in and info.out to obtain sim info.
     In:
         > completed_path - (str) path to directory
         containing completed simulations
-        > res_str - (str) species the resonance
-        under consideration, e.g., '53', '5:3', '5-3'
         > bigin - (str) current big.in iteration, e.g.,
         0-big.in
         > infoout - (str) current info.out iteration,
@@ -325,12 +342,12 @@ def read_biginfo(completed_path, res_str, bigin, infoout):
     """
     global AU, Msol
     completed_path = snip_path(completed_path)
-    big = '{}/{}/input/{}'.format(completed_path, res_str, bigin)
-    info = '{}/{}/info/{}'.format(completed_path, res_str, infoout)
+    big = '{}/input/{}'.format(completed_path, bigin)
+    info = '{}/info/{}'.format(completed_path, infoout)
     status = get_status(info)
     with open(big) as f:
         lines = f.readlines()
-        curr_sim = {'name': '{}_{}'.format(res_str, big),
+        curr_sim = {'name': '{}_{}'.format(completed_path, big),
                     'pimass': float(lines[6].split()[1][2:]), # Mjup
                     'pomass': float(lines[10].split()[1][2:]), # Mjup
                     'smass': float(1), # Msol
@@ -347,15 +364,13 @@ def read_biginfo(completed_path, res_str, bigin, infoout):
     return curr_sim
 
 
-def MM_sim_results(completed_path, res_str):
+def MM_sim_results(completed_path):
     """
     Creates list of results of all iterations of simulations
     for the resonance under consideration.
     In:
         > completed_path - (str) path to directory
         containing completed simulations
-        > res_str - (str) species the resonance
-        under consideration, e.g., '53', '5:3', '5-3'
     Out:
         > sim_results - (1xN list) info on outcomes of
         all iterations of simulation for resonance under
@@ -363,12 +378,12 @@ def MM_sim_results(completed_path, res_str):
     """
     sim_results = []
     completed_path = snip_path(completed_path)
-    bigins = listdir_nohidden('{}/{}/input/'.format(completed_path, res_str))
-    infoouts = listdir_nohidden('{}/{}/info/'.format(completed_path, res_str))
+    bigins = listdir_nohidden('{}/input/'.format(completed_path))
+    infoouts = listdir_nohidden('{}/info/'.format(completed_path))
     print(' ~~~~~~~~~~~~~~~~~~~~~~~~\n',
           'func.py/MM_sim_results():\n')
     for i in range(len(bigins)):
-        sim_results.append(read_biginfo(completed_path, res_str, bigins[i], infoouts[i]))
+        sim_results.append(read_biginfo(completed_path, bigins[i], infoouts[i]))
         if i%100 == 0:
             print(' sim: {}'.format(i))
     print(' ~~~~~~~~~~~~~~~~~~~~~~~~\n')
@@ -479,15 +494,13 @@ def get_resvar(res_str, planet_i, planet_o):
     return phi1, phi2, t_phi, deltaphi, lpdiff
 
 
-def get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2):
+def get_timeevol_data(completed_path, sim_results, mu1, mu2):
     """
     Get simulation data of both planets and the analytically
     determined path of planet 2.
     In:
         > completed_path - (str) path to directory
         containing completed simulations
-        > res_str - (str) species the resonance
-        under consideration, e.g., '53', '5:3', '5-3'
         > sim_results - (dictionary) information on results
         of simulation of the resonance under consideration
         > mu1, mu2 - (float) mass ratios of inner and outer
@@ -506,8 +519,8 @@ def get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2):
 
     system, = [sys for sys in sim_results if '{:.3e}'.format(sys['pimass'])==clicked_mu1 and '{:.3e}'.format(sys['pomass'])==clicked_mu2]
     sim_idx = re.search('([0-9]+)-big\.in', system['name']).group(1)
-    aeifile1 = "{}/{}/planets/{}-planet{}.aei".format(completed_path, res_str, sim_idx, 1)
-    aeifile2 = "{}/{}/planets/{}-planet{}.aei".format(completed_path, res_str, sim_idx, 2)
+    aeifile1 = "{}/planets/{}-planet{}.aei".format(completed_path, sim_idx, 1)
+    aeifile2 = "{}/planets/{}-planet{}.aei".format(completed_path, sim_idx, 2)
 
     planet1 = read_planetaei(aeifile1)
     planet2 = read_planetaei(aeifile2)
@@ -560,7 +573,7 @@ def plot_timeevol(completed_path, res_str, sim_results, mu1, mu2):
         displayed.
     """
     completed_path = snip_path(completed_path)
-    planet1, planet2, model_planet2, sim_idx, tau, outcome, final_age, planet = get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2)
+    planet1, planet2, model_planet2, sim_idx, tau, outcome, final_age, planet = get_timeevol_data(completed_path, sim_results, mu1, mu2)
     phi1, phi2, t_phi, deltaphi, lpdiff = get_resvar(res_str, planet1, planet2)
     res_float = float(res_str[0])/float(res_str[1])
     a_i = planet1['a'][0]
@@ -625,7 +638,7 @@ def plot_periods(completed_path, res_str, sim_results, mu1, mu2):
         displayed.
     """
     completed_path = snip_path(completed_path)
-    planet1, planet2, model_planet2, sim_idx, tau, outcome, final_age, planet = get_timeevol_data(completed_path, res_str, sim_results, mu1, mu2)
+    planet1, planet2, model_planet2, sim_idx, tau, outcome, final_age, planet = get_timeevol_data(completed_path, sim_results, mu1, mu2)
     phi1, phi2, t_phi, deltaphi, lpdiff = get_resvar(res_str, planet1, planet2)
 
     fig, ax = plt.subplots(4)
@@ -651,7 +664,6 @@ def plot_periods(completed_path, res_str, sim_results, mu1, mu2):
     ax[2].plot(e_p1_f, e_p1_Pxx, label="p1 e frequencies")
     ax[3].plot(e_p2_f, e_p2_Pxx, label="p2 e frequencies")
 
-
     for _ax in ax:
         if not _ax==ax[3]:
             _ax.tick_params(labelbottom=False)
@@ -664,20 +676,18 @@ def plot_periods(completed_path, res_str, sim_results, mu1, mu2):
 # # # # # # # # # # # # # # #
 # STABILITY BOUNDARY
 # # # # # # # # # # # # # # #
-def stability_boundary(res_str):
-    """
-    Obtain x + y data of analytical stability boundary as given by
-    "Dynamics of Systems of Two Close Planets", Gladman, B., 1993.
-    In:
-        > res_str - (str) species the resonance
-        under consideration, e.g., '53', '5:3', '5-3'
-    Out:
-        > X, Y, mumin, mumax - see stab() below
-        > x[1:], y[1:] - x and y arrays up to the x=y
-        point (as stability boundary is symmetric in the
-        x=y axis).
-    """
-    def fun(x, y, leeDelta):
+class StabilityBoundary:
+    def __init__(self, res_str):
+        self.res_str = res_str
+        self.res_float = int(res_str[0]) / int(res_str[-1])
+        X, Y, leeDelta = self.stab(self.res_float)
+        y = np.linspace(0, Y[1], 100)
+        x = [float(optimize.brentq(self.fun, 0, X[2]+.01, args=(y[i], leeDelta))) for i in range(0, len(y))]
+        self.x = x[1:]
+        self.y = y[1:]
+
+
+    def fun(self, x, y, leeDelta):
         """
         Function for fitting, as given by Gladman (1993). To be
         used for finding stability boundary.
@@ -692,13 +702,14 @@ def stability_boundary(res_str):
         eqn23 = 2*3**(1/6)*(x + y)**(1/3) + 2*3**(1/3)*(x + y)**(2/3) - (11*x + 7*y)/(3**(11/6)*(x + y)**(1/3)) - leeDelta
         return eqn23
 
-    def stab(res_float):
+
+    def stab(self, res_float):
         """
         Finds limits of stability boundary (i.e., minimum and
         maximum mu values up to the x=y point).
         In:
             > res_float - (float) fractional value of resonance under
-            consideration, i.e., 2/1=2.0, 5/3=1.66667, and so on
+        consideration, i.e., 2/1=2.0, 5/3=1.66667, and so on
         Out:
             > X, Y - (1x3 arrays) denote the maximum point,
             x=y symmetry point and minimum point, in both axes.
@@ -714,246 +725,214 @@ def stability_boundary(res_str):
         Y = [float(mumax[0]), float(mumin[0]), 0]
         return X, Y, leeDelta
 
-    res_float = int(res_str[0]) / int(res_str[-1])
-    X, Y, leeDelta = stab(res_float)
-    y = np.linspace(0, Y[1], 100)
-    x = [float(optimize.brentq(fun, 0, X[2]+.01, args=(y[i], leeDelta))) for i in range(0, len(y))]
-    return X, Y, x[1:], y[1:]
-
 
 # # # # # # # # # # # # # # #
 # FIGURE
 # # # # # # # # # # # # # # #
-def stability_fig_setup(res_str, results_path):
-    """
-    Set up main figure displaying mu1-mu2.
-    In:
-        > res_str - (str) species the resonance
-        under consideration, e.g., '53', '5:3', '5-3'
-    Out:
-        > fig, ax - (objects) matplotlib.pylot figure
-        and axis objects
-        > boundary - (1xN array) information on stability
-        boundary [see output of stability_boundary() function].
-    """
-    m_lims = {'21': (0, 14.15e-3), '53': (0, 4.15e-3), '32': (0, 4.5e-3), '75': (0, 2.87e-3), '43': (0, 1.42e-3)}
-    fig, ax = plt.subplots()
-    ax.set_xlim(m_lims[res_str])
-    ax.set_ylim(m_lims[res_str])
-    ax.set_xlabel('$\mu_1\ [M_1/M_\odot]$')
-    ax.set_ylabel('$\mu_2\ [M_2/M_\odot]$')
-    plt.ticklabel_format(axis='both', style='sci', scilimits=(0, 12))
-    ax.set_title('{}:{} ({})'.format(*res_str, results_path)) # DEBUG
-    #ax.set_title("{}:{}".format(*res_str))
-    boundary = plot_boundary(res_str, fig, ax)
-    return fig, ax, boundary
+class StabilityFigure:
+    def __init__(self, res_str):
+        self.res_str = res_str
+        self.fig, self.ax = plt.subplots()
+        self.ax.set_xlabel("$\mu_1\ [M_1/M_\odot]$")
+        self.ax.set_ylabel("$\mu_2\ [M_2/M_\odot]$")
+        plt.ticklabel_format(axis='both', style='sci', scilimits=(-1, 1))
+        #self.ax.set_title('{}:{} ({})'.format(*res_str, completed_path)) # DEBUG
+        self.ax.set_title("{}:{}".format(*res_str))
+        self.boundary = StabilityBoundary(res_str)
+        self.plot_boundary()
+        self.handles = []
+
+    def show(self):
+        """Display plot"""
+        #self.m_lims = {'21': (0, 14.15e-3), # ORIGINAL
+        #        '53': (0, 4.15e-3),
+        #        '32': (0, 4.5e-3),
+        #        '75': (0, 2.87e-3),
+        #        '43': (0, 1.42e-3)}
+        #self.m_lims = {'21': (0, 20e-3), # EXPANDED
+        #        '53': (0, 4.15e-3),
+        #        '32': (0, 3.5e-3),
+        #        '75': (0, 2.87e-3),
+        #        '43': (0, 1.42e-3)}
+        #lim = ylim = self.m_lims[self.res_str]
+        xmax = self.ax.get_xlim()[1]
+        ymax = self.ax.get_ylim()[1]
+        self.ax.set_xlim(0, xmax)
+        self.ax.set_ylim(0, ymax)
+
+        plt.legend(loc=2, handles=self.handles, fancybox=True, prop={'size': 6})
+        plt.show()
 
 
-def plot_boundary(res_str, fig, ax):
-    """
-    Plots the stability boundary given by Gladman (1993) [see
-    stability_boundary() function] on a given figure and axis
-    object.
-    In:
-        > res_str - (str) specifies the resonance
-        under consideration, e.g., '53', '5:3', '5-3'
-        > fig, ax - (objects) matplotlib.pylot figure
-        and axis objects
-    Out:
-        > boundary - (1xN array) information on stability
-        boundary [see output of stability_boundary() function].
-    """
-    boundary = stability_boundary(res_str)
-    xdat = np.append(boundary[2], np.flip(boundary[3]))
-    ydat = np.append(boundary[3], np.flip(boundary[2]))
-    ax.plot(xdat, ydat, 'b--', label='Analytical limit', linewidth=1)
-    return boundary
+    def plot_boundary(self):
+        """
+        Plots the stability boundary given by Gladman (1993) [see
+        stability_boundary() function] on a given figure and axis
+        object.
+        Out:
+            > boundary - (1xN array) information on stability
+            boundary [see output of stability_boundary() function].
+        """
+        bound_x = self.boundary.x
+        bound_y = self.boundary.y
+        xdat = np.append(bound_x, np.flip(bound_y))
+        ydat = np.append(bound_y, np.flip(bound_x))
+        self.ax.plot(xdat, ydat, 'b--', label='Analytical limit', linewidth=1)
 
 
-def plot_observed(observed, res_str, fig, ax, boundary, color, label):
-    """
-    Plots observed systems on a given figure and axis object.
-    In:
-        > observed - dictionary containing all systems detected to be
-        in resonance from a given online repository [see find_resonances()
-        function for details]. Dictionary keys are ['21', '53', '32', '75',
-        '43'], and sub-keys can be found by referring to the function
-        > res_str - (str) species the resonance
-        under consideration, e.g., '53', '5:3', '5-3'
-        > fig, ax - (objects) matplotlib.pylot figure
-        and axis objects
-        > boundary - (1xN array) information on stability
-        boundary [see output of stability_boundary() function]
-        > color - desired color of points
-        > label - desired label of points
-    Out:
-         > fig, ax - (objects) matplotlib.pylot figure
-        and axis objects.
-    """
-    mumin = boundary[2][-1]
-    mumax = boundary[2][0]
-    for system in observed[res_str]:
-        pi_mass = system['pi_mass']
-        sig_pi_mass = system['sig_pi_mass']
-        po_mass = system['po_mass']
-        sig_po_mass = system['sig_po_mass']
-        s_mass = system['s_mass']
-        sig_s_mass = system['sig_s_mass']
-        name = system['name']
-        mu_i, errs_i = mu_error(pi_mass, sig_pi_mass, s_mass, sig_s_mass)
-        mu_o, errs_o = mu_error(po_mass, sig_po_mass, s_mass, sig_s_mass)
-        errs_i = [[errs_i[0]], [errs_i[1]]]
-        errs_o = [[errs_o[0]], [errs_o[1]]]
-        ax.errorbar(mu_i, mu_o, xerr=errs_i, yerr=errs_o,
-                ecolor=color, elinewidth=.5, capsize=2, fmt='.', ms=10, color=color, label=label)
-        first_cond = - (mumax - mumin)/mumin*mu_i + mumax
-        second_cond = - mumin/(mumax - mumin)*mu_i + mumax*mumin/(mumax - mumin)
-        try:
-            if mu_o > first_cond and mu_o > second_cond:
-                #ax.text(mu_i, mu_o, name, fontsize=10, bbox=dict(boxstyle="round,pad=0.1", fc=color, ec=color, lw=1, alpha=.3), color='k', weight='bold') # DEBUG
-                ax.annotate(name, (mu_i, mu_o), fontsize=12, color='k', weight='bold')
-        except:
-            pass
-    return fig, ax
+    def plot_observed(self, observed):
+        """
+        Plots observed systems on a given figure and axis object.
+        In:
+            > observed - dictionary containing all systems detected to be
+            in resonance from a given online repository [see find_resonances()
+            function for details]. Dictionary keys are ['21', '53', '32', '75',
+            '43'], and sub-keys can be found by referring to the function
+        """
+        mumin = self.boundary.x[-1]
+        mumax = self.boundary.x[0]
+        for system in observed[self.res_str]:
+            name = system['name']
+            s_mass = system['s_mass']
+            pi_mass = system['pi_mass']
+            po_mass = system['po_mass']
+            m_prov = system['m_type']
+            sig_s_mass = system['sig_s_mass']
+            sig_pi_mass = system['sig_pi_mass']
+            sig_po_mass = system['sig_po_mass']
+            mu_i, errs_i = mu_error(pi_mass, sig_pi_mass, s_mass, sig_s_mass)
+            mu_o, errs_o = mu_error(po_mass, sig_po_mass, s_mass, sig_s_mass)
+            errs_i = [[errs_i[0]], [errs_i[1]]]
+            errs_o = [[errs_o[0]], [errs_o[1]]]
 
+            c_Mass = (.7, .15, 1)
+            c_Msini = (.1, .7, 1)
+            if m_prov == "Mass" or m_prov == "Msin(i)/sin(i)":
+                color = c_Mass
+            elif m_prov == "Msini":
+                color = c_Msini
 
-def plot_sims(sim_results, fig, ax):
-    """
-    Plots simulation results on given figure and axis
-    objects.
-    In:
-        > sim_results - (dictionary) information on results
-        of simulation of the resonance under consideration
-        > fig, ax - (objects) matplotlib.pylot figure
-        and axis objects
-    Out:
-        > (No output) - fig + ax objects are affected.
-    """
-    print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n",
-          "func.py/plot_sims():\n")
-    for i, sim in enumerate(sim_results):
-        x = sim['pimass'] / sim['smass']
-        y = sim['pomass'] / sim['smass']
-        outcome, planet, final_age = sim['status']
-        _picker = 4.5
-        if outcome == 'stable':
-            ax.plot(x, y, 'k.', ms=8, mew=.8, fillstyle='none', picker=_picker)
-        elif outcome == 'hit star':
-            ax.plot(x, y, marker='*', c=((1, .7, .2)), ms=7, mew=.8, fillstyle='none', picker=_picker)
-        elif outcome == 'hit planet':
-            ax.plot(x, y, marker='.', c=((1, 0, 0)), ms=9, mew=.9, fillstyle='none', picker=_picker)
-        elif outcome == 'ejected':
-            ax.plot(x, y, marker='^', c=((1, .4, .75)), ms=6, mew=.8, fillstyle='none', picker=_picker)
-        elif outcome == 'empty':
-            ax.plot(x, y, marker='s', c=((0, 0, 1)), ms=5, mew=.9, fillstyle='none', picker=_picker)
-        else:
-            pass
+            self.ax.errorbar(mu_i, mu_o, xerr=errs_i, yerr=errs_o,
+                    ecolor=color, elinewidth=.5, capsize=2, fmt='.', ms=10, mec='k', color=color)
+            first_cond = - (mumax - mumin)/mumin*mu_i + mumax
+            second_cond = - mumin/(mumax - mumin)*mu_i + mumax*mumin/(mumax - mumin)
+            try:
+                if mu_o > first_cond and mu_o > second_cond:
+                    #self.ax.text(mu_i, mu_o, name, fontsize=10, bbox=dict(boxstyle="round,pad=0.1", fc=color, ec=color, lw=1, alpha=.3), color='k', weight='bold') # DEBUG
+                    self.ax.annotate(name, (mu_i, mu_o), fontsize=12, color='k', weight='bold')
+                #self.ax.annotate(name, (mu_i, mu_o), fontsize=12, color='k', weight='bold')
 
-        if i%100 == 0:
-            print(" sim: {}".format(i))
-    print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
+            except:
+                pass
+        self.handles.append(Line2D([], [], color=c_Mass, marker='.',
+            ms=8, mec='k', ls='', label="Observed (Mass)"))
+        self.handles.append(Line2D([], [], color=c_Msini, marker='.',
+            ms=8, mec='k', ls='', label="Observed (Msini)"))
 
-    _handles = [Line2D([], [], color='k', marker='.', ms=8, mew=.8,
-                ls='', fillstyle='none', label='Stable'),
-            Line2D([], [], color=((1, .7, .2)), marker='*', ms=7, mew=.8,
-                ls='', fillstyle='none', label='P-* collision'),
-            Line2D([], [], color=((1, 0, 0)), marker='.', ms=9, mew=.9,
-                ls='', fillstyle='none', label='P-P collision'),
-            Line2D([], [], color=((1, .4, .75)), marker='^', ms=6, mew=.8,
-                ls='', fillstyle='none', label='Ejection'),
-            Line2D([], [], color=((0, 0, 1)), marker='s', ms=5, mew=.9,
-                ls='', fillstyle='none', label='No data'),
-            Line2D([], [], color='g', marker='.', ms=8,
-                ls='', label='Observed')]
-    plt.legend(loc=2, handles=_handles, fancybox=True, prop={'size': 6})
-    fig.subplots_adjust(bottom=.15)
-    ax.text(0.01, -0.15, "N = {}".format(len(sim_results)), transform=ax.transAxes)
-    tau = sim['potau']
-    ax.text(0.01, -0.2, "$\\tau$ = {:.1e} yrs".format(tau), transform=ax.transAxes)
-
-
-def plot_sims_age(sim_results, fig, ax):
-    """
-    Plots simulation results on given figure and axis
-    objects.
-    In:
-        > sim_results - (dictionary) information on results
-        of simulation of the resonance under consideration
-        > fig, ax - (objects) matplotlib.pylot figure
-        and axis objects
-    Out:
-        > (No output) - fig + ax objects are affected.
-    """
-    print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n",
-          "func.py/plot_sims():\n")
-
-    stable_age = 10006850
-    cmap = get_cmap('brg')
-    _picker = 4.5
-
-    for i, sim in enumerate(sim_results):
-        x = sim['pimass'] / sim['smass']
-        y = sim['pomass'] / sim['smass']
-        outcome, planet, final_age = sim['status']
-        fractional_age = final_age / stable_age
-
-        ax.plot(x, y, marker='.', c=cmap(fractional_age)[:3], ms=8, mew=.8, fillstyle='none', picker=_picker)
-
-        if i%100 == 0:
-            print(" sim: {}".format(i))
-    print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
-
-
-    cbar = plt.colorbar(ScalarMappable(cmap=cmap), ax=ax)
-    cbar.set_ticks([0, .2, .4, .6, .8, 1])
-    cbar.set_ticklabels(['{:.1e}'.format(val) for val in np.dot([0, .2, .4, .6, .8, 1], stable_age)])
-    fig.subplots_adjust(bottom=.15)
-    ax.text(0.01, -0.15, "N = {}".format(len(sim_results)), transform=ax.transAxes)
-    tau = sim['potau']
-    ax.text(0.01, -0.2, "$\\tau$ = {:.1e} yrs".format(tau), transform=ax.transAxes)
-
-
-def interactive_mu1mu2(completed_path, res_str, sim_results, fig):
-    """
-    Allows click-interaction with mu1-mu2 figure to allow the inspection of
-    the time-evolution of any selected system.
-    In:
-        > completed_path - (str) path to directory
-        containing completed simulations
-        > res_str - (str) species the resonance
-        under consideration, e.g., '53', '5:3', '5-3'
-        > sim_results - (dictionary) information on results
-        of simulation of the resonance under consideration
-        > fig, ax - (objects) matplotlib.pylot figure
-        and axis objects (mu1-mu2 graph)
-    Out:
-        > (No output) - time-evolution graph is plotted
-        (see plot_timeevol() function).
-    """
-    def on_pick(event):
-        point = event.artist
-        x, y = point.get_data()
-        global coords
-        coords.append((x[0], y[0]))
+    def plot_sims(self, completed_path, age=True):
+        """
+        Plots simulation results on given figure and axis
+        objects.
+        In:
+            > sim_results - (dictionary) information on results
+            of simulation of the resonance under consideration
+        """
         print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n",
-              "func/plot_sims_timeevol():\n")
-        if len(coords) > 1:
-            idx = len(coords) - 1
-            print("You have selected more than one system.\n",
-                    "If you did this by accident, please\n",
-                    "zoom in to select just one at a time.\n",
-                    "Plotting system {}.\n".format(coords[idx]))
-            #fig.canvas.mpl_disconnect(cid)
-        else:
-            print("Plotting system {}.".format(coords[0]))
-            idx = 0
-        mu1 = coords[idx][0]
-        mu2 = coords[idx][1]
-        plot_timeevol(completed_path, res_str, sim_results, mu1, mu2)
-        #plot_periods(completed_path, res_str, sim_results, mu1, mu2) # DEBUG
+              "func.py/plot_sims():\n")
+
+        sim_results = MM_sim_results(completed_path)
+        _picker = 4.5
+        stable_age = 10006850
+        cmap = get_cmap('brg')
+        settings = {'stable': [(0, 0, 0), '.', 8, .8, "Stable"],
+                'hit star': [(1, .7, .2), '*', 7, .8, "P-* collision"],
+                'hit planet': [(1, 0, 0), '.', 9, .9, "P-P collision"],
+                'ejected': [(1, .4, .75), '^', 6, .8, "Ejection"],
+                'empty': [(0, 0, 1), 's', 5, .9, "No data"]}
+
+        for i, sim in enumerate(sim_results):
+            x = sim['pimass'] / sim['smass']
+            y = sim['pomass'] / sim['smass']
+            outcome, planet, final_age = sim['status']
+            if age==True:
+                fractional_age = final_age / stable_age
+                _color, _marker, _ms, _mew = cmap(fractional_age)[:3], '.', 8, .8
+            else:
+                _color, _marker, _ms, _mew = settings[outcome][:-1]
+            self.ax.plot(x, y, color=_color, marker=_marker, ms=_ms, mew=_mew,
+                    fillstyle='none', picker=_picker)
+
+            if i%100 == 0:
+                print(" sim: {}".format(i))
         print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
 
-    completed_path = snip_path(completed_path)
-    global coords
-    coords = []
-    cid = fig.canvas.mpl_connect('pick_event', on_pick)
+        if age==True:
+            cbar = plt.colorbar(ScalarMappable(cmap=cmap), ax=self.ax)
+            cbar.set_ticks([0, .2, .4, .6, .8, 1])
+            cbar.set_ticklabels(['{:.1e}'.format(val)
+                for val in np.dot([0, .2, .4, .6, .8, 1], stable_age)])
+        else:
+            for outcome in settings:
+                _color, _marker, _ms, _mew, _label = settings[outcome]
+                _handle = Line2D([], [], color=_color, marker=_marker,
+                        ms=_ms, mew=_mew, ls='', fillstyle='none',
+                        label=_label)
+                self.handles.append(_handle)
+            #self.handles.append(Line2D([], [], color='g', marker='.',
+            #        ms=8, ls='', label='Observed'))
+            #plt.legend(loc=2, handles=_handles, fancybox=True, prop={'size': 6})
+
+        self.fig.subplots_adjust(bottom=.15)
+        self.ax.text(0.01, -0.15, "N = {}".format(len(sim_results)), transform=self.ax.transAxes)
+        tau = sim['potau']
+        self.ax.text(0.01, -0.2, "$\\tau$ = {:.1e} [Yrs]".format(tau), transform=self.ax.transAxes)
+        incl_2 = float(read_initconds(completed_path, "incl_2"))
+        self.ax.text(0.4, -0.2, "$i$ = {:.1f} [Deg]".format(incl_2), transform=self.ax.transAxes)
+
+        self.interactive_mu1mu2(completed_path, sim_results)
+
+
+    def interactive_mu1mu2(self, completed_path, sim_results):
+        """
+        Allows click-interaction with mu1-mu2 figure to allow the inspection of
+        the time-evolution of any selected system.
+        In:
+            > completed_path - (str) path to directory
+            containing completed simulations
+            > res_str - (str) species the resonance
+            under consideration, e.g., '53', '5:3', '5-3'
+            > sim_results - (dictionary) information on results
+            of simulation of the resonance under consideration
+            > fig, ax - (objects) matplotlib.pylot figure
+            and axis objects (mu1-mu2 graph)
+        Out:
+            > (No output) - time-evolution graph is plotted
+            (see plot_timeevol() function).
+        """
+        def on_pick(event):
+            point = event.artist
+            x, y = point.get_data()
+            global coords
+            coords.append((x[0], y[0]))
+            print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n",
+                  "func/plot_sims_timeevol():\n")
+            if len(coords) > 1:
+                idx = len(coords) - 1
+                print("You have selected more than one system.\n",
+                        "If you did this by accident, please\n",
+                        "zoom in to select just one at a time.\n",
+                        "Plotting system {}.\n".format(coords[idx]))
+                #fig.canvas.mpl_disconnect(cid)
+            else:
+                print("Plotting system {}.".format(coords[0]))
+                idx = 0
+            mu1 = coords[idx][0]
+            mu2 = coords[idx][1]
+            plot_timeevol(completed_path, self.res_str, sim_results, mu1, mu2)
+            #plot_periods(completed_path, self.res_str, sim_results, mu1, mu2) # DEBUG
+            print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
+
+        #completed_path = snip_path(completed_path)
+        global coords
+        coords = []
+        cid = self.fig.canvas.mpl_connect('pick_event', on_pick)
