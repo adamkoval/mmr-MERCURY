@@ -13,6 +13,7 @@ from scipy import optimize
 from scipy.signal import periodogram
 from matplotlib.lines import Line2D
 from matplotlib.cm import (get_cmap, ScalarMappable)
+from adjustText import adjust_text
 
 Msol = 1.9886e30 #kg
 Mjup = 1.89813e27 #kg
@@ -111,6 +112,11 @@ def read_initconds(completed_path, var_str):
         lines = f.readlines()
     var, = [line.split()[2] for line in lines if line.startswith(var_str)]
     return var
+
+
+def get_dadt(a_f, a_t, tau):
+    """Calculates radial migration speed"""
+    return (a_f - a_t) / tau
 
 
 # # # # # # # # # # # # # # #
@@ -435,7 +441,6 @@ def kepler3_resdisp(res_float, a_i):
     Out:
         > a_o - (float) semi-major axis of outer planet [units=AU].
     """
-    global G
     a_o = res_float**(2/3) * a_i
     return a_o
 
@@ -605,7 +610,7 @@ def plot_timeevol(completed_path, res_str, sim_results, mu1, mu2):
     ax[2].set_ylabel("$\\Delta\\varpi$ [deg]")
 
     for _ax in ax:
-        #_ax.set_xscale('log')
+        _ax.set_xscale('log')
         if not _ax==ax[2]:
             _ax.tick_params(labelbottom=False)
         _ax.tick_params(axis='x', which='both', direction='in')
@@ -614,7 +619,13 @@ def plot_timeevol(completed_path, res_str, sim_results, mu1, mu2):
 
 
     ax[0].set_title("Sim no. = {}".format(sim_idx), pad=45)
-    plt.figtext(.5, .9, "$\mu_1={}$, $\mu_2={}$, res$=${}:{}, outcome={}, planet={}, tau={:.2e} (years)".format(mu1, mu2, res_str[0], res_str[1], outcome, planet, tau), horizontalalignment='center')
+    plt.figtext(.5, .9,
+            "$\mu_1={}$, $\mu_2={}$, res$=${}:{}, outcome={}, planet={}, tau={:.2e} (years)".format(mu1, mu2, res_str[0], res_str[1], outcome, planet, tau),
+            horizontalalignment='center')
+    pratio = get_pratio(planet1['a'], planet2['a'])
+    plt.figtext(.5, .01,
+            "Final period ratio: {:.4g}".format(pratio),
+            )
     plt.tight_layout()
     plt.show()
 
@@ -672,6 +683,18 @@ def plot_periods(completed_path, res_str, sim_results, mu1, mu2):
 
     plt.tight_layout()
 
+
+def get_pratio(a1, a2):
+    """Finds final period ratio of stable systems by averaging over last
+    1e6 years.
+    """
+    global Msol
+    final_avg_a1 = np.mean(a1[1000:])
+    final_avg_a2 = np.mean(a2[1000:])
+    p1 = kepler3_period(final_avg_a1, Msol)
+    p2 = kepler3_period(final_avg_a2, Msol)
+    pratio = p2/p1
+    return pratio
 
 # # # # # # # # # # # # # # #
 # STABILITY BOUNDARY
@@ -757,10 +780,15 @@ class StabilityFigure:
         #lim = ylim = self.m_lims[self.res_str]
         xmax = self.ax.get_xlim()[1]
         ymax = self.ax.get_ylim()[1]
-        self.ax.set_xlim(0, xmax)
-        self.ax.set_ylim(0, ymax)
+        mx = max(xmax, ymax)
+        self.ax.set_xlim(0, mx)
+        self.ax.set_ylim(0, mx)
 
         plt.legend(loc=2, handles=self.handles, fancybox=True, prop={'size': 6})
+        try:
+            adjust_text(self.observed_labels)
+        except AttributeError:
+            pass
         plt.show()
 
 
@@ -791,6 +819,7 @@ class StabilityFigure:
         """
         mumin = self.boundary.x[-1]
         mumax = self.boundary.x[0]
+        self.observed_labels = []
         for system in observed[self.res_str]:
             name = system['name']
             s_mass = system['s_mass']
@@ -818,10 +847,8 @@ class StabilityFigure:
             second_cond = - mumin/(mumax - mumin)*mu_i + mumax*mumin/(mumax - mumin)
             try:
                 if mu_o > first_cond and mu_o > second_cond:
-                    #self.ax.text(mu_i, mu_o, name, fontsize=10, bbox=dict(boxstyle="round,pad=0.1", fc=color, ec=color, lw=1, alpha=.3), color='k', weight='bold') # DEBUG
-                    self.ax.annotate(name, (mu_i, mu_o), fontsize=12, color='k', weight='bold')
-                #self.ax.annotate(name, (mu_i, mu_o), fontsize=12, color='k', weight='bold')
-
+                    self.observed_labels.append(self.ax.text(mu_i, mu_o, name,
+                        fontsize=12, color='k', weight='bold'))
             except:
                 pass
         self.handles.append(Line2D([], [], color=c_Mass, marker='.',
@@ -829,7 +856,8 @@ class StabilityFigure:
         self.handles.append(Line2D([], [], color=c_Msini, marker='.',
             ms=8, mec='k', ls='', label="Observed (Msini)"))
 
-    def plot_sims(self, completed_path, age=True):
+
+    def plot_sims(self, completed_path, view):
         """
         Plots simulation results on given figure and axis
         objects.
@@ -843,7 +871,10 @@ class StabilityFigure:
         sim_results = MM_sim_results(completed_path)
         _picker = 4.5
         stable_age = 10006850
-        cmap = get_cmap('brg')
+        cmap_age = get_cmap('brg')
+        cmap_prat = get_cmap('jet')
+        prat_ticks = [1.333, 1.4, 1.5, 1.667, 2.0]
+        prat_tick_range = prat_ticks[-1] - prat_ticks[0]
         settings = {'stable': [(0, 0, 0), '.', 8, .8, "Stable"],
                 'hit star': [(1, .7, .2), '*', 7, .8, "P-* collision"],
                 'hit planet': [(1, 0, 0), '.', 9, .9, "P-P collision"],
@@ -851,43 +882,81 @@ class StabilityFigure:
                 'empty': [(0, 0, 1), 's', 5, .9, "No data"]}
 
         for i, sim in enumerate(sim_results):
-            x = sim['pimass'] / sim['smass']
-            y = sim['pomass'] / sim['smass']
-            outcome, planet, final_age = sim['status']
-            if age==True:
-                fractional_age = final_age / stable_age
-                _color, _marker, _ms, _mew = cmap(fractional_age)[:3], '.', 8, .8
-            else:
-                _color, _marker, _ms, _mew = settings[outcome][:-1]
-            self.ax.plot(x, y, color=_color, marker=_marker, ms=_ms, mew=_mew,
-                    fillstyle='none', picker=_picker)
+            try:
+                x = sim['pimass'] / sim['smass']
+                y = sim['pomass'] / sim['smass']
+                outcome, planet, final_age = sim['status']
+                if view=="age":
+                    fractional_age = final_age / stable_age
+                    _color, _marker, _ms, _mew = cmap_age(fractional_age)[:3], '.', 8, .8
+                elif view=="outcome":
+                    _color, _marker, _ms, _mew = settings[outcome][:-1]
+                elif view=="pratio":
+                    if outcome=='stable':
+                        sim_idx = re.search('([0-9]+)-big\.in', sim['name']).group(1)
+                        aeifile1 = "{}/planets/{}-planet{}.aei".format(completed_path, sim_idx, 1)
+                        aeifile2 = "{}/planets/{}-planet{}.aei".format(completed_path, sim_idx, 2)
 
-            if i%100 == 0:
-                print(" sim: {}".format(i))
+                        planet1 = read_planetaei(aeifile1)
+                        planet2 = read_planetaei(aeifile2)
+                        a1 = planet1['a']
+                        a2 = planet2['a']
+                        pratio = get_pratio(a1, a2)
+                        fractional_pratio = (pratio - prat_ticks[0])/prat_tick_range
+                        _color = cmap_prat(fractional_pratio)[:3]
+                        _marker, _ms, _mew = '.', 8, .8
+                    else:
+                        _color, _marker, _ms, _mew = 'k', '.', 2, .2
+
+                self.ax.plot(x, y, color=_color, marker=_marker, ms=_ms, mew=_mew,
+                        fillstyle='none', picker=_picker)
+
+                if i%100 == 0:
+                    print(" sim: {}".format(i))
+
+            except FileNotFoundError:
+                pass
         print(" ~~~~~~~~~~~~~~~~~~~~~~~~\n")
 
-        if age==True:
-            cbar = plt.colorbar(ScalarMappable(cmap=cmap), ax=self.ax)
+        if view=="age":
+            cbar = plt.colorbar(ScalarMappable(cmap=cmap_age), ax=self.ax)
             cbar.set_ticks([0, .2, .4, .6, .8, 1])
             cbar.set_ticklabels(['{:.1e}'.format(val)
                 for val in np.dot([0, .2, .4, .6, .8, 1], stable_age)])
-        else:
+        elif view=="outcome":
             for outcome in settings:
                 _color, _marker, _ms, _mew, _label = settings[outcome]
                 _handle = Line2D([], [], color=_color, marker=_marker,
                         ms=_ms, mew=_mew, ls='', fillstyle='none',
                         label=_label)
                 self.handles.append(_handle)
-            #self.handles.append(Line2D([], [], color='g', marker='.',
-            #        ms=8, ls='', label='Observed'))
-            #plt.legend(loc=2, handles=_handles, fancybox=True, prop={'size': 6})
+        elif view=="pratio":
+            cbar = plt.colorbar(ScalarMappable(cmap=cmap_prat), ax=self.ax)
+            cbar.set_ticks([(val-prat_ticks[0])/prat_tick_range for val in prat_ticks])
+            cbar.set_ticklabels(prat_ticks)
 
-        self.fig.subplots_adjust(bottom=.15)
-        self.ax.text(0.01, -0.15, "N = {}".format(len(sim_results)), transform=self.ax.transAxes)
-        tau = sim['potau']
-        self.ax.text(0.01, -0.2, "$\\tau$ = {:.1e} [Yrs]".format(tau), transform=self.ax.transAxes)
+        self.fig.subplots_adjust(bottom=.17)
+
+        potau = sim['potau']
+        poDelta = sim['poDelta']
+        pia = sim['pia']
+        poa = sim['poa']
+        poa_f = poDelta + poa
+        res_float = float(self.res_str[0])/float(self.res_str[1])
+        a_res = kepler3_resdisp(res_float, pia)
+        dadt = get_dadt(poa_f, a_res, potau)
+        #a_res74 = kepler3_resdisp(7/4, pia) # DEBUG
+        #dadt = get_dadt(poa_f, a_res74, potau) # DEBUG
         incl_2 = float(read_initconds(completed_path, "incl_2"))
-        self.ax.text(0.4, -0.2, "$i$ = {:.1f} [Deg]".format(incl_2), transform=self.ax.transAxes)
+
+        self.ax.text(0, -.2,
+                "N = {}".format(len(sim_results))
+                + ",\t"
+                + "$\\left.\\frac{{da}}{{dt}}\\right|_{{t_{{res}}}}={:.3e}$ [AU/yr]".format(dadt)
+                + ",\t"
+                + "$i$ = {:.1f} [Deg]".format(incl_2),
+                color=(.1, .3, .6),
+                transform=self.ax.transAxes)
 
         self.interactive_mu1mu2(completed_path, sim_results)
 
@@ -899,15 +968,8 @@ class StabilityFigure:
         In:
             > completed_path - (str) path to directory
             containing completed simulations
-            > res_str - (str) species the resonance
-            under consideration, e.g., '53', '5:3', '5-3'
             > sim_results - (dictionary) information on results
             of simulation of the resonance under consideration
-            > fig, ax - (objects) matplotlib.pylot figure
-            and axis objects (mu1-mu2 graph)
-        Out:
-            > (No output) - time-evolution graph is plotted
-            (see plot_timeevol() function).
         """
         def on_pick(event):
             point = event.artist
