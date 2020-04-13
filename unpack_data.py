@@ -30,7 +30,8 @@ res_str_old = '-'.join((resonance[0], resonance[-1]))
 res_str_new = ''.join((resonance[0], resonance[-1]))
 three_dirs = ['info', 'input', 'planets']
 
-os.mkdir(path_new)
+if not os.path.exists('{}'.format(path_new)):
+    os.mkdir(path_new)
 if not os.path.exists('{}/{}'.format(path_new, res_str_new)):
     os.mkdir('{}/{}'.format(path_new, res_str_new))
     for _dir in three_dirs:
@@ -42,19 +43,22 @@ for res_dir in res_dirs:
     N_old = len(os.listdir('{}/{}/{}/info/'.format(path_old, res_str_old, res_dir)))
     N_new = len(os.listdir('{}/{}/info/'.format(path_new, res_str_new)))
     for n in range(1, N_old+1):
-        shutil.copy('{}/{}/{}/info/{}-info.out'.format(path_old, res_str_old, res_dir, n),
-                '{}/{}/info/{}-info.out'.format(path_new, res_str_new, N_new))
-        shutil.copy('{}/{}/{}/input/{}-big.in'.format(path_old, res_str_old, res_dir, n),
-                '{}/{}/input/{}-big.in'.format(path_new, res_str_new, N_new))
         try:
-            shutil.copy('{}/{}/{}/planets/{}/planet1.aei'.format(path_old, res_str_old, res_dir, n),
-                    '{}/{}/planets/{}-planet1.aei'.format(path_new, res_str_new, N_new))
-        except FileNotFoundError:
-            open('{}/{}/planets/{}-planet1_empty.aei'.format(path_new, res_str_new, N_new), 'a').close()
-        try:
-            shutil.copy('{}/{}/{}/planets/{}/planet2.aei'.format(path_old, res_str_old, res_dir, n),
-                '{}/{}/planets/{}-planet2.aei'.format(path_new, res_str_new, N_new))
-        except FileNotFoundError:
-            open('{}/{}/planets/{}-planet2_empty.aei'.format(path_new, res_str_new, N_new), 'a').close()
+            shutil.copy('{}/{}/{}/info/{}-info.out'.format(path_old, res_str_old, res_dir, n),
+                    '{}/{}/info/{}-info.out'.format(path_new, res_str_new, N_new))
+            shutil.copy('{}/{}/{}/input/{}-big.in'.format(path_old, res_str_old, res_dir, n),
+                    '{}/{}/input/{}-big.in'.format(path_new, res_str_new, N_new))
+            try:
+                shutil.copy('{}/{}/{}/planets/{}/planet1.aei'.format(path_old, res_str_old, res_dir, n),
+                        '{}/{}/planets/{}-planet1.aei'.format(path_new, res_str_new, N_new))
+            except FileNotFoundError:
+                open('{}/{}/planets/{}-planet1_empty.aei'.format(path_new, res_str_new, N_new), 'a').close()
+            try:
+                shutil.copy('{}/{}/{}/planets/{}/planet2.aei'.format(path_old, res_str_old, res_dir, n),
+                    '{}/{}/planets/{}-planet2.aei'.format(path_new, res_str_new, N_new))
+            except FileNotFoundError:
+                open('{}/{}/planets/{}-planet2_empty.aei'.format(path_new, res_str_new, N_new), 'a').close()
 
-        N_new += 1
+            N_new += 1
+        except FileNotFoundError:
+            pass
