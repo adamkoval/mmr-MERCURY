@@ -29,6 +29,7 @@ Tnorm_o = max(float(res_str[0]), float(res_str[1]))
 Tnorm_i = min(float(res_str[0]), float(res_str[1]))
 Mjup = 1.898e27 # kg
 Msol = 1.989e30 # kg
+res_float = Tnorm_o / Tnorm_i
 
 # Mass ranges
 Sum = Tnorm_o + Tnorm_i
@@ -55,24 +56,18 @@ else:
 new_mi = np.random.uniform(range0, rangef) * Mjup/Msol
 new_mo = np.random.uniform(range0, rangef) * Mjup/Msol
 
-# Initial positions (must be improved)
+# Initial + final positions
 new_a0i = 5
-
-res_float = Tnorm_o / Tnorm_i
-out_disp_frac = .4
-Dres_out = fn.disp(res_float, out_disp_frac, 'out')
-new_a0o = (res_float + Dres_out)**(2/3) * new_a0i
+new_a0o_new = fn.set_outer(new_a0i, res_float, fraction=0.4, direction="out")
+fin_a0o_new = fn.set_outer(new_a0i, res_float, fraction=0.1, direction="in")
+#fin_a0o = new_a0i
 
 # Migration timescale
 new_p1i = 1.e15
 new_p1o = 1.e6
 
-# Migration ditance (needs changing)
+# Migration distance (needs changing)
 new_p2i = 0.0
-
-inn_disp_frac = .1
-Dres_in = fn.disp(res_float, inn_disp_frac, 'in')
-fin_a0o = (res_float - Dres_in)**(2/3) * new_a0i
 new_p2o = fin_a0o - new_a0o
 
 # Inclination
